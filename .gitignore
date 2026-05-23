@@ -7,3 +7,5 @@ playwright/.cache/
 .env.local
 *.last-run.json
 .DS_Store
+probe-*.cjs
+probe-*.js

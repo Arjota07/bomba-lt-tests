@@ -1,33 +1,23 @@
-import { test as base, expect } from '@playwright/test';
+import { test as base, expect, Page } from '@playwright/test';
 
 /**
  * StorageState fixture for bomba.lt
  *
- * Prod read-only mode — naudoja TIK guest sesiją.
- * Cookie consent acceptintas iškart, kad NEblokuotų screenshot'ų.
+ * Prod read-only mode — guest sesija.
+ *
+ * NOTE (2026-05-23 investigation): bomba.lt NETURI cookie consent banner'io.
+ * Anksčiau buvęs auto-accept logic'as pašalintas (waste — bandydavo paspausti
+ * neegzistuojantį button'ą + timeout'indavo 1500ms).
  */
 
 type Fixtures = {
-  guestPage: any;
+  guestPage: Page;
 };
 
 export const test = base.extend<Fixtures>({
   guestPage: async ({ browser }, use) => {
     const context = await browser.newContext();
     const page = await context.newPage();
-
-    // Auto-accept cookie banner (jei pasirodo)
-    page.on('load', async () => {
-      try {
-        const acceptBtn = page.getByRole('button', { name: /sutinku|accept|patvirtinti/i });
-        if (await acceptBtn.isVisible({ timeout: 1500 })) {
-          await acceptBtn.click({ timeout: 1500 });
-        }
-      } catch {
-        // No cookie banner — OK
-      }
-    });
-
     await use(page);
     await context.close();
   },
