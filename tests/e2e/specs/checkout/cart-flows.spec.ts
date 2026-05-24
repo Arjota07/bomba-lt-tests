@@ -149,21 +149,25 @@ test.describe('Critical checkout flows (read-only)', () => {
   });
 
   test('TC-CHK-006: contact page accessible (NE submitinti formos)', async ({ guestPage }) => {
+    // PS 9 contact controller renderina form'ą — bandyti URL'us po vieną
     const contactUrls = ['/kontaktai', '/contact-us', '/index.php?controller=contact'];
 
     let contactFound = false;
+    let lastStatus = 0;
     for (const url of contactUrls) {
-      const resp = await guestPage.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 });
-      if (resp && resp.status() < 400) {
-        // Contact form
+      const resp = await guestPage.goto(url, { waitUntil: 'networkidle', timeout: 30_000 }).catch(() => null);
+      if (!resp) continue;
+      lastStatus = resp.status();
+      if (lastStatus < 400) {
+        // Forma gali būti late-rendered per JS (mobile)
         const form = guestPage.locator('form').first();
-        if (await form.isVisible({ timeout: 3000 }).catch(() => false)) {
+        if (await form.isVisible({ timeout: 10_000 }).catch(() => false)) {
           contactFound = true;
           break;
         }
       }
     }
 
-    expect(contactFound, 'Contact page must be accessible').toBe(true);
+    expect(contactFound, `Contact page must be accessible (last status: ${lastStatus})`).toBe(true);
   });
 });

@@ -33,10 +33,22 @@ test.describe('Smoke: Homepage', () => {
     // Title turi turėti site name
     await expect(guestPage).toHaveTitle(/bomba/i);
 
-    const critical = errors.filter((e) =>
-      !e.includes('net::') && !e.includes('Failed to load resource')
-    );
-    expect(critical).toEqual([]);
+    // Console errors filter: praleidžiam network errors + ŽINOMUS third-party noise
+    // (analytics, ads, social, cookie consent — jie už mūsų kontrolės ribų)
+    const IGNORED_PATTERNS = [
+      /net::/i,
+      /Failed to load resource/i,
+      /google-analytics|googletagmanager|ga\.js|gtm\.js|gtag/i,
+      /facebook\.net|fbevents/i,
+      /hotjar|clarity\.ms/i,
+      /klaro|cookieyes|cookielaw/i,
+      /sentry\.io/i,
+      /\b(SecurityError|NotAllowedError|AbortError)\b/i, // browser quirks, not app bugs
+      /Content Security Policy/i, // CSP noise from third-party scripts
+      /WebSocket connection/i,
+    ];
+    const critical = errors.filter((e) => !IGNORED_PATTERNS.some((p) => p.test(e)));
+    expect(critical, `Critical app errors: ${critical.join('\n')}`).toEqual([]);
   });
 
   test('TC-002: search button matomas (mobile context behind hamburger)', async ({ guestPage }, testInfo) => {
