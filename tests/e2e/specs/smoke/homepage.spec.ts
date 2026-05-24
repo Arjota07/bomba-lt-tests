@@ -46,6 +46,10 @@ test.describe('Smoke: Homepage', () => {
       /\b(SecurityError|NotAllowedError|AbortError)\b/i, // browser quirks, not app bugs
       /Content Security Policy/i, // CSP noise from third-party scripts
       /WebSocket connection/i,
+      // CORS preflight reject on third-party CDNs when X-E2E-Bot header injected
+      // (playwright.config.ts extraHTTPHeaders). Not a bomba.lt bug.
+      /Access to .+ from origin .+ has been blocked by CORS policy/i,
+      /fonts\.gstatic\.com|fonts\.googleapis\.com/i,
     ];
     const critical = errors.filter((e) => !IGNORED_PATTERNS.some((p) => p.test(e)));
     expect(critical, `Critical app errors: ${critical.join('\n')}`).toEqual([]);
