@@ -87,17 +87,34 @@ test.describe('Critical checkout flows (read-only)', () => {
     await guestPage.goto('/', { waitUntil: 'domcontentloaded', timeout: 30_000 });
 
     const productLink = await guestPage.evaluate(() => {
-      // Ieškom linkų su pažymėjimu, kad tai produktas
-      const links = Array.from(document.querySelectorAll('a[href]')) as HTMLAnchorElement[];
-      const productLinks = links.filter((a) => {
+      // STRATEGIJA #1: PrestaShop standartiniai product card selektoriai
+      const productCards = Array.from(
+        document.querySelectorAll(
+          '.product-miniature a[href], .products .product a[href], article.product a[href], [data-id-product] a[href]'
+        )
+      ) as HTMLAnchorElement[];
+
+      for (const a of productCards) {
         const href = a.getAttribute('href') || '';
-        return (
-          (href.includes('-p') || /\/\d+-/.test(href) || href.includes('/product/')) &&
-          !href.includes('category') &&
-          !href.includes('#')
-        );
-      });
-      return productLinks.length > 0 ? productLinks[0].href : null;
+        if (href.startsWith('http') && !href.includes('#') && !href.includes('?add-to-cart')) {
+          return a.href;
+        }
+      }
+
+      // STRATEGIJA #2: fallback į URL'us kurie atrodo kaip PS produktai
+      // PS produktai: /<lt-name>/<id>-<rewrite>.html ARBA /<id>-<rewrite> kur rewrite turi >=2 vidinius brūkšnius
+      const links = Array.from(document.querySelectorAll('a[href]')) as HTMLAnchorElement[];
+      for (const a of links) {
+        const href = a.getAttribute('href') || '';
+        if (
+          /\/\d+-[a-z0-9-]+\.html?/i.test(href) || // /123-album-name.html
+          /\?id_product=\d+/.test(href)
+        ) {
+          return a.href;
+        }
+      }
+
+      return null;
     });
 
     if (!productLink) {
