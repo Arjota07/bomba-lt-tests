@@ -9,3 +9,7 @@ playwright/.cache/
 .DS_Store
 probe-*.cjs
 probe-*.js
+
+# Allure (raw + generated)
+allure-results/
+allure-report/

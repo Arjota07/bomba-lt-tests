@@ -28,6 +28,18 @@ export default defineConfig({
     ['html', { open: 'never' }],
     ['list'],
     ['json', { outputFile: 'test-results/results.json' }],
+    ['allure-playwright', {
+      outputFolder: 'allure-results',
+      detail: true,
+      suiteTitle: false,
+      environmentInfo: {
+        target: BASE_URL,
+        framework: 'PrestaShop 9.1.1',
+        mode: 'production-read-only',
+        node: process.version,
+        os: process.platform,
+      },
+    }],
   ],
 
   use: {
