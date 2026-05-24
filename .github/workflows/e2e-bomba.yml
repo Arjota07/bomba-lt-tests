@@ -4,19 +4,33 @@ name: bomba.lt E2E (Production Monitor)
 #
 # MODE: TIK read-only — JOKIO checkout, JOKIO actual order submission.
 #
-# Trigger'iai:
-#   - push/PR (visi 6 QA dimensijos)
-#   - daily schedule (06:00 UTC = 08:00 LT) — production drift detection
+# Trigger'iai (po 2026-05-24 billing optimization):
+#   - push/PR į master/main — TIK kai keičiasi test code arba workflow (paths filter)
+#   - weekly schedule (pirmadienis 06:00 UTC = 08:00 LT vasarą) — drift detection
 #   - manual workflow_dispatch su QA dimension select
 
 on:
   push:
     branches: [master, main]
+    paths:
+      - 'specs/**'
+      - 'tests/**'
+      - 'playwright.config.*'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/**'
   pull_request:
     branches: [master, main]
+    paths:
+      - 'specs/**'
+      - 'tests/**'
+      - 'playwright.config.*'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/**'
   schedule:
-    # Kasdien 06:00 UTC = 08:00 vasarą / 09:00 žiemą Vilniuje
-    - cron: '0 6 * * *'
+    # Buvo daily '0 6 * * *' (12 jobs × 7 = ~84 jobs/sav). Sumažinta į weekly Monday.
+    - cron: '0 6 * * 1'
   workflow_dispatch:
     inputs:
       qa_suite:
@@ -89,8 +103,25 @@ jobs:
         if: steps.pw-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium webkit
 
+      - name: Schedule trim — skip non-core suites on weekly cron
+        id: trim
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            # Weekly drift run: TIK smoke+security+a11y ant desktop-chromium
+            if [ "${{ matrix.project }}" = "desktop-chromium" ] && \
+               [[ "smoke|security|a11y" == *"${{ matrix.suite }}"* ]]; then
+              echo "run=true" >> $GITHUB_OUTPUT
+            else
+              echo "run=false" >> $GITHUB_OUTPUT
+              echo "::notice::Skipping ${{ matrix.suite }} on ${{ matrix.project }} for weekly schedule run"
+            fi
+          else
+            echo "run=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Selected suite filter
         id: filter
+        if: steps.trim.outputs.run == 'true'
         run: |
           INPUT="${{ inputs.qa_suite }}"
           MATRIX="${{ matrix.suite }}"
@@ -101,14 +132,14 @@ jobs:
           fi
 
       - name: Run Playwright (${{ matrix.suite }})
-        if: steps.filter.outputs.run == 'true'
+        if: steps.trim.outputs.run == 'true' && steps.filter.outputs.run == 'true'
         env:
           CI: 'true'
           BASE_URL: 'https://bomba.lt'
         run: npx playwright test specs/${{ matrix.suite }} --project=${{ matrix.project }}
 
       - name: Upload HTML report
-        if: always() && steps.filter.outputs.run == 'true'
+        if: always() && steps.trim.outputs.run == 'true' && steps.filter.outputs.run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: report-${{ matrix.suite }}-${{ matrix.project }}
@@ -116,7 +147,7 @@ jobs:
           retention-days: 30
 
       - name: Upload traces (failures)
-        if: failure() && steps.filter.outputs.run == 'true'
+        if: failure() && steps.trim.outputs.run == 'true' && steps.filter.outputs.run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: traces-${{ matrix.suite }}-${{ matrix.project }}
