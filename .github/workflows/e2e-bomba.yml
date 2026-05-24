@@ -11,9 +11,9 @@ name: bomba.lt E2E (Production Monitor)
 
 on:
   push:
-    branches: [main]
+    branches: [master, main]
   pull_request:
-    branches: [main]
+    branches: [master, main]
   schedule:
     # Kasdien 06:00 UTC = 08:00 vasarą / 09:00 žiemą Vilniuje
     - cron: '0 6 * * *'
