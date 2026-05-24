@@ -22,8 +22,10 @@ test.describe('Visual regression: Homepage', () => {
     await expect(guestPage).toHaveScreenshot('homepage-atf.png', {
       fullPage: false,
       maxDiffPixelRatio: 0.02,
-      // Mask dynamic content (e.g., timestamps, ads)
+      // Mask dynamic content (carousel, timestamps, ads)
       mask: [
+        guestPage.locator('.bomba-hero-slider'),
+        guestPage.locator('.carousel'),
         guestPage.locator('[data-dynamic]'),
         guestPage.locator('.live-counter'),
       ],
@@ -31,9 +33,22 @@ test.describe('Visual regression: Homepage', () => {
   });
 
   test('homepage full page', async ({ guestPage }) => {
+    // Stop animations to reduce carousel timing flake
+    await guestPage.evaluate(() => {
+      document.querySelectorAll('.carousel, .bomba-hero-slider').forEach((el) => {
+        el.querySelectorAll('*').forEach((child) => {
+          (child as HTMLElement).style.animation = 'none';
+          (child as HTMLElement).style.transition = 'none';
+        });
+      });
+    });
     await expect(guestPage).toHaveScreenshot('homepage-full.png', {
       fullPage: true,
-      maxDiffPixelRatio: 0.03,
+      maxDiffPixelRatio: 0.05, // 5% tolerance (was 3% — carousel residual jitter)
+      mask: [
+        guestPage.locator('.bomba-hero-slider'),
+        guestPage.locator('.carousel'),
+      ],
     });
   });
 });

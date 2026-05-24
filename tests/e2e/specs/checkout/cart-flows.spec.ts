@@ -149,7 +149,8 @@ test.describe('Critical checkout flows (read-only)', () => {
   });
 
   test('TC-CHK-006: contact page accessible (NE submitinti formos)', async ({ guestPage }) => {
-    // PS 9 contact controller renderina form'ą — bandyti URL'us po vieną
+    // PS 9 contact page turi ~4 form'ų (search header, mobile search, contact, newsletter).
+    // Ieškome KONKREČIAI contact form'os — pagal action atributą.
     const contactUrls = ['/kontaktai', '/contact-us', '/index.php?controller=contact'];
 
     let contactFound = false;
@@ -159,9 +160,17 @@ test.describe('Critical checkout flows (read-only)', () => {
       if (!resp) continue;
       lastStatus = resp.status();
       if (lastStatus < 400) {
-        // Forma gali būti late-rendered per JS (mobile)
-        const form = guestPage.locator('form').first();
-        if (await form.isVisible({ timeout: 10_000 }).catch(() => false)) {
+        // Contact form pagal action ('contact', 'susisiekite', 'kontaktai')
+        const contactForm = guestPage.locator(
+          'form[action*="contact"], form[action*="susisiekite"], form[action*="kontaktai"], form[id*="contact"]'
+        ).first();
+        if (await contactForm.isVisible({ timeout: 5_000 }).catch(() => false)) {
+          contactFound = true;
+          break;
+        }
+        // Fallback: textarea field (contact form'os turi message lauką)
+        const messageField = guestPage.locator('textarea[name="message"], textarea[id*="message"]').first();
+        if (await messageField.isVisible({ timeout: 3_000 }).catch(() => false)) {
           contactFound = true;
           break;
         }
