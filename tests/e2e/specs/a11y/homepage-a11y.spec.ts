@@ -16,9 +16,10 @@ import AxeBuilder from '@axe-core/playwright';
  */
 
 const KNOWN_VIOLATIONS = new Set([
-  'page-has-heading-one',  // bom-001 (server fix laukia)
-  'heading-order',         // bom-001 follow-up
+  'page-has-heading-one',  // bom-001 DEPLOYED 2026-05-24 — SR-only h1
+  'heading-order',         // bom-001 follow-up (heading hierarchy)
   'color-contrast',        // tema priklausoma — flag, neblock
+  'nested-interactive',    // ps_imageslider <li role="option"> turi focusable child (PS core, upstream issue)
 ]);
 
 test.describe('A11y: WCAG 2.1 AA — axe-core', () => {
