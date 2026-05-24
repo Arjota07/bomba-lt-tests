@@ -1,0 +1,178 @@
+name: bomba.lt E2E (Production Monitor)
+
+# Paleidžia full 6-agent QA suite prieš produkciją https://bomba.lt
+#
+# MODE: TIK read-only — JOKIO checkout, JOKIO actual order submission.
+#
+# Trigger'iai:
+#   - push/PR (visi 6 QA dimensijos)
+#   - daily schedule (06:00 UTC = 08:00 LT) — production drift detection
+#   - manual workflow_dispatch su QA dimension select
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Kasdien 06:00 UTC = 08:00 vasarą / 09:00 žiemą Vilniuje
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      qa_suite:
+        description: 'QA dimension'
+        type: choice
+        default: all
+        options:
+          - all
+          - smoke
+          - a11y
+          - security
+          - mobile
+          - performance
+          - checkout
+          - visual
+
+concurrency:
+  group: bomba-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: ${{ matrix.suite }} on ${{ matrix.project }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        suite:
+          - smoke
+          - a11y
+          - security
+          - mobile
+          - performance
+          - checkout
+        project:
+          - desktop-chromium
+          - mobile-iphone
+        exclude:
+          # Mobile suite TIK ant mobile project
+          - suite: mobile
+            project: desktop-chromium
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: pw-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Install Playwright browsers
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Install browser deps (cache hit)
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium webkit
+
+      - name: Selected suite filter
+        id: filter
+        run: |
+          INPUT="${{ inputs.qa_suite }}"
+          MATRIX="${{ matrix.suite }}"
+          if [ "$INPUT" = "all" ] || [ -z "$INPUT" ] || [ "$INPUT" = "$MATRIX" ]; then
+            echo "run=true" >> $GITHUB_OUTPUT
+          else
+            echo "run=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run Playwright (${{ matrix.suite }})
+        if: steps.filter.outputs.run == 'true'
+        env:
+          CI: 'true'
+          BASE_URL: 'https://bomba.lt'
+        run: npx playwright test specs/${{ matrix.suite }} --project=${{ matrix.project }}
+
+      - name: Upload HTML report
+        if: always() && steps.filter.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: report-${{ matrix.suite }}-${{ matrix.project }}
+          path: playwright-report
+          retention-days: 30
+
+      - name: Upload traces (failures)
+        if: failure() && steps.filter.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: traces-${{ matrix.suite }}-${{ matrix.project }}
+          path: test-results/**/trace.zip
+          retention-days: 7
+
+  visual-baseline:
+    name: Visual regression baseline
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    if: github.event_name == 'workflow_dispatch' && (inputs.qa_suite == 'visual' || inputs.qa_suite == 'all')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      - name: Run visual tests
+        env:
+          CI: 'true'
+        run: npx playwright test specs/visual
+
+      - name: Upload visual diffs (on update)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: visual-screenshots
+          path: |
+            tests/e2e/specs/visual/__screenshots__
+            test-results/**/*.png
+          retention-days: 30
+
+  summary:
+    name: QA Suite Summary
+    runs-on: ubuntu-22.04
+    needs: [e2e]
+    if: always()
+    steps:
+      - name: Report
+        run: |
+          echo "## bomba.lt 6-Agent QA Suite Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Dimension | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Overall E2E | ${{ needs.e2e.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Trigger: \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Target: https://bomba.lt" >> $GITHUB_STEP_SUMMARY
+          echo "- Run: ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.e2e.result }}" != "success" ]; then
+            exit 1
+          fi
