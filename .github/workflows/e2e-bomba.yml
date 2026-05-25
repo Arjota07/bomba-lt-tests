@@ -4,16 +4,23 @@ name: bomba.lt E2E (Production Monitor)
 #
 # MODE: TIK read-only — JOKIO checkout, JOKIO actual order submission.
 #
-# Trigger'iai (po 2026-05-24 billing optimization):
-#   - push/PR į master/main — TIK kai keičiasi test code arba workflow (paths filter)
-#   - weekly schedule (pirmadienis 06:00 UTC = 08:00 LT vasarą) — drift detection
-#   - manual workflow_dispatch su QA dimension select
+# Trigger'iai (po 2026-05-25 billing minimization v2):
+#   - push į master/main — TIK 4 core suites × 1 platform (~4 jobs)
+#   - pull_request — TIK smoke × 1 platform (~1 job) sanity check
+#   - weekly schedule (pirmadienis 06:00 UTC) — 3 jobs drift detection
+#   - manual workflow_dispatch — pilna matrica kai reikia (qa_suite=all)
+#
+# Minutes biudžetas (free tier 2000 min/mėn private repo):
+#   - push run: 4 jobs × ~3 min = ~12 min
+#   - PR run: 1 job × ~3 min = ~3 min
+#   - weekly: 3 jobs × ~3 min = ~9 min/sav = ~36 min/mėn
+#   - manual full: 11 jobs × ~3 min = ~33 min
+#   → typical mėn: <200 min, gerai telpa į free tier
 
 on:
   push:
     branches: [master, main]
     paths:
-      - 'specs/**'
       - 'tests/**'
       - 'playwright.config.*'
       - 'package.json'
@@ -22,7 +29,6 @@ on:
   pull_request:
     branches: [master, main]
     paths:
-      - 'specs/**'
       - 'tests/**'
       - 'playwright.config.*'
       - 'package.json'
@@ -55,7 +61,7 @@ jobs:
   e2e:
     name: ${{ matrix.suite }} on ${{ matrix.project }}
     runs-on: ubuntu-22.04
-    timeout-minutes: 20
+    timeout-minutes: 10
 
     strategy:
       fail-fast: false
@@ -103,21 +109,48 @@ jobs:
         if: steps.pw-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium webkit
 
-      - name: Schedule trim — skip non-core suites on weekly cron
+      - name: Event-aware trim — billing minimization (v2 2026-05-25)
         id: trim
         run: |
-          if [ "${{ github.event_name }}" = "schedule" ]; then
-            # Weekly drift run: TIK smoke+security+a11y ant desktop-chromium
-            if [ "${{ matrix.project }}" = "desktop-chromium" ] && \
-               [[ "smoke|security|a11y" == *"${{ matrix.suite }}"* ]]; then
+          EVENT="${{ github.event_name }}"
+          SUITE="${{ matrix.suite }}"
+          PROJECT="${{ matrix.project }}"
+
+          case "$EVENT" in
+            schedule)
+              # Weekly drift run: TIK smoke+security+a11y ant desktop-chromium (3 jobs)
+              if [ "$PROJECT" = "desktop-chromium" ] && [[ "|smoke|security|a11y|" == *"|$SUITE|"* ]]; then
+                echo "run=true" >> $GITHUB_OUTPUT
+              else
+                echo "run=false" >> $GITHUB_OUTPUT
+                echo "::notice::Skip ($EVENT): $SUITE/$PROJECT"
+              fi
+              ;;
+            pull_request)
+              # PR sanity check: TIK smoke × desktop-chromium (1 job)
+              if [ "$PROJECT" = "desktop-chromium" ] && [ "$SUITE" = "smoke" ]; then
+                echo "run=true" >> $GITHUB_OUTPUT
+              else
+                echo "run=false" >> $GITHUB_OUTPUT
+                echo "::notice::Skip ($EVENT): $SUITE/$PROJECT — PR runs only smoke/desktop"
+              fi
+              ;;
+            push)
+              # Push: 4 core suites × desktop-chromium (4 jobs)
+              # mobile-iphone testuojama TIK manual arba weekly
+              if [ "$PROJECT" = "desktop-chromium" ] && \
+                 [[ "|smoke|security|a11y|checkout|" == *"|$SUITE|"* ]]; then
+                echo "run=true" >> $GITHUB_OUTPUT
+              else
+                echo "run=false" >> $GITHUB_OUTPUT
+                echo "::notice::Skip ($EVENT): $SUITE/$PROJECT — push runs only 4 core/desktop"
+              fi
+              ;;
+            *)
+              # workflow_dispatch arba bet kas kitas — pilna matrica
               echo "run=true" >> $GITHUB_OUTPUT
-            else
-              echo "run=false" >> $GITHUB_OUTPUT
-              echo "::notice::Skipping ${{ matrix.suite }} on ${{ matrix.project }} for weekly schedule run"
-            fi
-          else
-            echo "run=true" >> $GITHUB_OUTPUT
-          fi
+              ;;
+          esac
 
       - name: Selected suite filter
         id: filter
