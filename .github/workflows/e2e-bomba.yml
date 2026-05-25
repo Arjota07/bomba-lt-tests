@@ -83,10 +83,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node 20
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
@@ -95,7 +95,7 @@ jobs:
         run: npm ci
 
       - name: Cache Playwright browsers
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: pw-cache
         with:
           path: ~/.cache/ms-playwright
@@ -173,7 +173,7 @@ jobs:
 
       - name: Upload HTML report
         if: always() && steps.trim.outputs.run == 'true' && steps.filter.outputs.run == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: report-${{ matrix.suite }}-${{ matrix.project }}
           path: playwright-report
@@ -181,7 +181,7 @@ jobs:
 
       - name: Upload traces (failures)
         if: failure() && steps.trim.outputs.run == 'true' && steps.filter.outputs.run == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: traces-${{ matrix.suite }}-${{ matrix.project }}
           path: test-results/**/trace.zip
@@ -194,9 +194,9 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && (inputs.qa_suite == 'visual' || inputs.qa_suite == 'all')
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
@@ -210,7 +210,7 @@ jobs:
         run: npx playwright test specs/visual
 
       - name: Upload visual diffs (on update)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: visual-screenshots
