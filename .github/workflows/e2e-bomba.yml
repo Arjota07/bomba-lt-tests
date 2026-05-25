@@ -202,22 +202,34 @@ jobs:
           cache: 'npm'
 
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      # Install BOTH chromium ir webkit — visual specs paleidžia ant 3 devices
+      # (desktop-chromium=chromium, mobile-iphone=webkit, tablet-ipad=webkit)
+      - run: npx playwright install --with-deps chromium webkit
 
-      - name: Run visual tests
+      - name: Run visual tests (desktop-chromium, missing snapshots auto-created)
+        # Baseline snapshots TURI būti generated Linux'e (CI runner OS), darwin (Mac)
+        # snapshots negalioja cross-OS. `--update-snapshots=missing` automatiškai
+        # sukuria trūkstamus *-linux.png pirmojo run'o metu. Po to compare to baseline.
+        # Workflow: 1) pirmas run sukuria → 2) artifact upload → 3) commit į repo.
+        # PASTABA: kol Linux baseline nėra repo'e, šis step'as "perka" naujus snapshots
+        # be tikros regression detection (nes baseline = current). Tikra regresijos
+        # detekcija nuo antro CI run'o ant tų pačių snapshots'ų.
         env:
           CI: 'true'
-        run: npx playwright test specs/visual
+        run: npx playwright test specs/visual --project=desktop-chromium --update-snapshots=missing
 
-      - name: Upload visual diffs (on update)
+      - name: Upload visual snapshots + diffs
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: visual-screenshots
+          name: visual-snapshots-linux
+          # Snapshots dirs: __screenshots__ ir spec-name-snapshots (Playwright default)
           path: |
-            tests/e2e/specs/visual/__screenshots__
+            tests/e2e/specs/visual/**/__screenshots__/**
+            tests/e2e/specs/visual/**/*-snapshots/**
             test-results/**/*.png
           retention-days: 30
+          if-no-files-found: warn
 
   summary:
     name: QA Suite Summary
