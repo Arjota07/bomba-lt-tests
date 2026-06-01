@@ -15,7 +15,9 @@ import { defineConfig, devices } from '@playwright/test';
  *   BASE_URL=https://bomba.lt npm test  # override URL
  */
 
-const BASE_URL = process.env.BASE_URL || 'https://bomba.lt';
+// Post-cutover (2026-05-26): bomba.lt → 302 → www.imuzika.lt (path dropped to root).
+// Production = www.imuzika.lt. bomba.lt domenas dabar tik redirect-stub'as.
+const BASE_URL = process.env.BASE_URL || 'https://www.imuzika.lt';
 
 export default defineConfig({
   testDir: './tests/e2e/specs',

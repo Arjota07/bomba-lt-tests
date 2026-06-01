@@ -30,8 +30,8 @@ test.describe('Smoke: Homepage', () => {
     await expect(guestPage.getByRole('main')).toBeVisible();
     await expect(guestPage.getByRole('contentinfo')).toBeVisible();
 
-    // Title turi turėti site name
-    await expect(guestPage).toHaveTitle(/bomba/i);
+    // Title turi turėti site name (post-cutover: iMuzika.lt)
+    await expect(guestPage).toHaveTitle(/imuzika/i);
 
     // Console errors filter: praleidžiam network errors + ŽINOMUS third-party noise
     // (analytics, ads, social, cookie consent — jie už mūsų kontrolės ribų)
