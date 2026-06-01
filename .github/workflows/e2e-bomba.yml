@@ -168,7 +168,7 @@ jobs:
         if: steps.trim.outputs.run == 'true' && steps.filter.outputs.run == 'true'
         env:
           CI: 'true'
-          BASE_URL: 'https://bomba.lt'
+          BASE_URL: 'https://www.imuzika.lt'
         run: npx playwright test specs/${{ matrix.suite }} --project=${{ matrix.project }}
 
       - name: Upload HTML report
@@ -246,7 +246,7 @@ jobs:
           echo "| Overall E2E | ${{ needs.e2e.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- Trigger: \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Target: https://bomba.lt" >> $GITHUB_STEP_SUMMARY
+          echo "- Target: https://www.imuzika.lt" >> $GITHUB_STEP_SUMMARY
           echo "- Run: ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
 
           if [ "${{ needs.e2e.result }}" != "success" ]; then
