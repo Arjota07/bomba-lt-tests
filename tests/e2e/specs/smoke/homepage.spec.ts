@@ -1,7 +1,7 @@
 import { test, expect } from '../../fixtures/storage';
 
 /**
- * Smoke tests pritaikyti REALIAI bomba.lt HTML strukturai
+ * Smoke tests pritaikyti REALIAI imuzika.lt HTML strukturai
  * (po 2026-05-23/24 dual investigation):
  *
  * Findings:
@@ -47,7 +47,7 @@ test.describe('Smoke: Homepage', () => {
       /Content Security Policy/i, // CSP noise from third-party scripts
       /WebSocket connection/i,
       // CORS preflight reject on third-party CDNs when X-E2E-Bot header injected
-      // (playwright.config.ts extraHTTPHeaders). Not a bomba.lt bug.
+      // (playwright.config.ts extraHTTPHeaders). Not an imuzika.lt bug.
       /Access to .+ from origin .+ has been blocked by CORS policy/i,
       /fonts\.gstatic\.com|fonts\.googleapis\.com/i,
     ];

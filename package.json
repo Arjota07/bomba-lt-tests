@@ -1,7 +1,7 @@
 {
   "name": "bomba-lt-tests",
   "version": "1.0.0",
-  "description": "E2E tests for bomba.lt (PrestaShop 9.1.1) — read-only smoke against production",
+  "description": "E2E tests for imuzika.lt (PrestaShop 9.1.1) — read-only smoke against production",
   "private": true,
   "type": "module",
   "scripts": {

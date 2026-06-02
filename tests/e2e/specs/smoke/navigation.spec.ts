@@ -12,7 +12,7 @@ test.describe('Smoke: Navigation', () => {
     const hrefsToCheck: string[] = [];
     for (let i = 0; i < Math.min(linkCount, 5); i++) {
       const href = await navLinks.nth(i).getAttribute('href');
-      if (href && (href.startsWith('/') || href.includes('bomba.lt'))) {
+      if (href && (href.startsWith('/') || href.includes('imuzika.lt') || href.includes('bomba.lt'))) {
         if (!href.startsWith('javascript:') && !href.startsWith('mailto:')) {
           hrefsToCheck.push(href.startsWith('http') ? new URL(href).pathname : href);
         }
@@ -32,7 +32,7 @@ test.describe('Smoke: Navigation', () => {
     });
     expect(resp?.status()).toBe(404);
 
-    // Bomba.lt 404 turi: title "404 klaida", <h1>"Puslapis, kurio ieškote, nerastas."
+    // imuzika.lt 404 turi: title "404 klaida", <h1>"Puslapis, kurio ieškote, nerastas."
     // + pilna site layout (header + main + footer)
     await expect(guestPage.getByRole('banner')).toBeVisible({ timeout: 10_000 });
     await expect(guestPage.getByRole('contentinfo')).toBeVisible();

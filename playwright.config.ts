@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Playwright config for bomba.lt — PrestaShop 9.1.1
+ * Playwright config for imuzika.lt — PrestaShop 9.1.1
  *
  * MODE: PRODUCTION READ-ONLY
  * - Tikrina tik publicus puslapius

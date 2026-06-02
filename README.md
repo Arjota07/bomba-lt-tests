@@ -1,10 +1,12 @@
-# bomba.lt-tests
+# imuzika.lt E2E tests
 
-E2E tests for [bomba.lt](https://bomba.lt) (PrestaShop 9.1.1) — read-only smoke + visual regression against production.
+E2E tests for **imuzika.lt** ([www.imuzika.lt](https://www.imuzika.lt), PrestaShop 9.1.1) — read-only smoke + visual regression against production.
+
+> **Post-cutover (2026-05-26):** production = `https://www.imuzika.lt`. The `bomba.lt` domain now 302-redirects to it (retired-brand stub — covered by `smoke/redirect-health.spec.ts`). The GitHub repo slug is still `bomba-lt-tests`.
 
 ## ⚠️ MODE: PROD READ-ONLY
 
-This suite tests **production** (`https://bomba.lt`) and:
+This suite tests **production** (`https://www.imuzika.lt`) and:
 
 - ✅ Browses public pages
 - ✅ Captures visual regression baseline
@@ -106,7 +108,7 @@ GitHub Actions workflow: [`.github/workflows/e2e-bomba.yml`](.github/workflows/e
 
 Manual full matrica:
 ```bash
-gh workflow run "bomba.lt E2E (Production Monitor)" --ref master -f qa_suite=all
+gh workflow run "imuzika.lt E2E (Production Monitor)" --ref master -f qa_suite=all
 ```
 
 ## Visual regression baselines — cross-OS
@@ -134,7 +136,7 @@ git commit -m "test(visual): update darwin baselines"
 **Linux CI (oficialiu būdu — sukurti per workflow):**
 1. Paleisti workflow su visual input:
    ```bash
-   gh workflow run "bomba.lt E2E (Production Monitor)" --ref master -f qa_suite=visual
+   gh workflow run "imuzika.lt E2E (Production Monitor)" --ref master -f qa_suite=visual
    ```
 2. Po run'o (FAIL su "snapshot doesn't exist" — tai expected pirmu kartu):
    ```bash
@@ -177,7 +179,7 @@ This project is consumed by the `e2e-orchestrator` skill:
 ## Susiję
 
 - Main skill: `~/.claude/skills/e2e-orchestrator/` (v1.0.3+ su KRITINĖ TAISYKLĖ #11: self-hosted runner DA shared hosting'e NEĮMANOMAS)
-- Production target: https://bomba.lt
+- Production target: https://www.imuzika.lt
 - Server: bomba.hostingas.lt (109.235.68.43)
 - Billing incident memory: `project_github_actions_billing_20260525.md` (paaiškina kodėl repo PUBLIC ir self-hosted runner nebandytinas)
 - DO NOT push tests dir to production server.

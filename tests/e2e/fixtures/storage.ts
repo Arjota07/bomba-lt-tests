@@ -1,11 +1,11 @@
 import { test as base, expect, Page } from '@playwright/test';
 
 /**
- * StorageState fixture for bomba.lt
+ * StorageState fixture for imuzika.lt
  *
  * Prod read-only mode — guest sesija.
  *
- * NOTE (2026-05-23 investigation): bomba.lt NETURI cookie consent banner'io.
+ * NOTE (2026-05-23 investigation): imuzika.lt NETURI cookie consent banner'io.
  * Anksčiau buvęs auto-accept logic'as pašalintas (waste — bandydavo paspausti
  * neegzistuojantį button'ą + timeout'indavo 1500ms).
  */

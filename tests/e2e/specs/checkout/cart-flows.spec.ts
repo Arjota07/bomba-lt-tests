@@ -1,7 +1,7 @@
 import { test, expect } from '../../fixtures/storage';
 
 /**
- * Critical checkout flows — read-only smoke tests bomba.lt.
+ * Critical checkout flows — read-only smoke tests imuzika.lt.
  *
  * MODE: PRODUCTION READ-ONLY. JOKIO actual checkout, payment, ar order submit.
  *       Tikrinam TIK ar puslapiai/redirect'ai veikia korektiškai.
@@ -73,7 +73,7 @@ test.describe('Critical checkout flows (read-only)', () => {
   });
 
   test('TC-CHK-004: sitemap.xml egzistuoja ir teisingo formato', async ({ request }) => {
-    const resp = await request.get('https://bomba.lt/sitemap.xml');
+    const resp = await request.get('/sitemap.xml');
     expect(resp.status()).toBeLessThan(400);
 
     const xml = await resp.text();

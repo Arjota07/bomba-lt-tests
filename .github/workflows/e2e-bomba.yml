@@ -1,6 +1,6 @@
-name: bomba.lt E2E (Production Monitor)
+name: imuzika.lt E2E (Production Monitor)
 
-# Paleidžia full 6-agent QA suite prieš produkciją https://bomba.lt
+# Paleidžia full 6-agent QA suite prieš produkciją https://www.imuzika.lt
 #
 # MODE: TIK read-only — JOKIO checkout, JOKIO actual order submission.
 #
@@ -239,7 +239,7 @@ jobs:
     steps:
       - name: Report
         run: |
-          echo "## bomba.lt 6-Agent QA Suite Results" >> $GITHUB_STEP_SUMMARY
+          echo "## imuzika.lt 6-Agent QA Suite Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Dimension | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY

@@ -16,7 +16,7 @@ import { test, expect } from '../../fixtures/storage';
 
 const FCP_BUDGET_MS = 3000;       // good=1800, lenient
 const LCP_BUDGET_MS = 4000;       // good=2500, lenient
-// TTFB nuo CI runner (US/AWS) iki bomba.lt CF edge įprastai 1600-1800ms.
+// TTFB nuo CI runner (US/AWS) iki imuzika.lt CF edge įprastai 1600-1800ms.
 // Real-user iš Lietuvos: <300ms (CF cache hit). CI threshold lenient'as.
 const TTFB_BUDGET_MS = process.env.CI ? 2500 : 1500;
 const CLS_BUDGET = 0.25;          // good=0.1, lenient
@@ -24,7 +24,7 @@ const CLS_BUDGET = 0.25;          // good=0.1, lenient
 test.describe('Performance: Web Vitals', () => {
   test(`TC-PERF-001: TTFB < ${TTFB_BUDGET_MS}ms (homepage)`, async ({ request }) => {
     const start = Date.now();
-    const resp = await request.get('https://bomba.lt/');
+    const resp = await request.get('/');
     const ttfb = Date.now() - start;
 
     expect(resp.status()).toBeLessThan(400);

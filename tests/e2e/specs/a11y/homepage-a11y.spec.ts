@@ -2,7 +2,7 @@ import { test, expect } from '../../fixtures/storage';
 import AxeBuilder from '@axe-core/playwright';
 
 /**
- * A11y (axe-core) testai bomba.lt.
+ * A11y (axe-core) testai imuzika.lt.
  *
  * QA Agent dimensija: UX-Auditor / Security-Auditor (WCAG 2.1 AA).
  *

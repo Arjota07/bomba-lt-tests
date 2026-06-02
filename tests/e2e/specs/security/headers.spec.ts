@@ -1,7 +1,7 @@
 import { test, expect } from '../../fixtures/storage';
 
 /**
- * Security headers testai bomba.lt — Security-Auditor QA Agent dimensija.
+ * Security headers testai imuzika.lt — Security-Auditor QA Agent dimensija.
  *
  * Mode: PRODUCTION READ-ONLY (TIK GET requestai).
  *
@@ -11,12 +11,12 @@ import { test, expect } from '../../fixtures/storage';
 
 test.describe('Security: HTTP headers', () => {
   test('TC-SEC-001: HTTPS visada (HTTP → HTTPS redirect)', async ({ request }) => {
-    const resp = await request.get('https://bomba.lt/', { maxRedirects: 0 });
+    const resp = await request.get('/', { maxRedirects: 0 });
     expect(resp.status(), 'HTTPS turi grąžinti 200, ne redirect').toBeLessThan(400);
   });
 
   test('TC-SEC-002: HSTS header su includeSubDomains', async ({ request }) => {
-    const resp = await request.get('https://bomba.lt/');
+    const resp = await request.get('/');
     const hsts = resp.headers()['strict-transport-security'];
 
     expect(hsts, 'Strict-Transport-Security header būtinas').toBeTruthy();
@@ -30,13 +30,13 @@ test.describe('Security: HTTP headers', () => {
   });
 
   test('TC-SEC-003: X-Content-Type-Options: nosniff', async ({ request }) => {
-    const resp = await request.get('https://bomba.lt/');
+    const resp = await request.get('/');
     const nosniff = resp.headers()['x-content-type-options'];
     expect(nosniff, 'X-Content-Type-Options turi būti "nosniff"').toBe('nosniff');
   });
 
   test('TC-SEC-004: X-Frame-Options arba CSP frame-ancestors', async ({ request }) => {
-    const resp = await request.get('https://bomba.lt/');
+    const resp = await request.get('/');
     const xfo = resp.headers()['x-frame-options'];
     const csp = resp.headers()['content-security-policy'];
 
@@ -48,13 +48,13 @@ test.describe('Security: HTTP headers', () => {
   });
 
   test('TC-SEC-005: Referrer-Policy nustatyta', async ({ request }) => {
-    const resp = await request.get('https://bomba.lt/');
+    const resp = await request.get('/');
     const rp = resp.headers()['referrer-policy'];
     expect(rp, 'Referrer-Policy header rekomenduojamas').toBeTruthy();
   });
 
   test('TC-SEC-006: Server fingerprint minimal (NE atskleisti PrestaShop version)', async ({ request }) => {
-    const resp = await request.get('https://bomba.lt/');
+    const resp = await request.get('/');
     const server = resp.headers()['server'] || '';
     const xPoweredBy = resp.headers()['x-powered-by'] || '';
 
@@ -82,7 +82,7 @@ test.describe('Security: HTTP headers', () => {
   });
 
   test('TC-SEC-008: robots.txt egzistuoja ir leidžia indexing', async ({ request }) => {
-    const resp = await request.get('https://bomba.lt/robots.txt');
+    const resp = await request.get('/robots.txt');
     expect(resp.status()).toBe(200);
     const body = await resp.text();
     expect(body.toLowerCase()).toContain('user-agent:');
