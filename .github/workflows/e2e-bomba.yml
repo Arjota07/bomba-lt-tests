@@ -208,12 +208,13 @@ jobs:
 
       - name: Run visual tests (desktop-chromium, missing snapshots auto-created)
         # Baseline snapshots TURI būti generated Linux'e (CI runner OS), darwin (Mac)
-        # snapshots negalioja cross-OS. `--update-snapshots=missing` automatiškai
-        # sukuria trūkstamus *-linux.png pirmojo run'o metu. Po to compare to baseline.
-        # Workflow: 1) pirmas run sukuria → 2) artifact upload → 3) commit į repo.
-        # PASTABA: kol Linux baseline nėra repo'e, šis step'as "perka" naujus snapshots
-        # be tikros regression detection (nes baseline = current). Tikra regresijos
-        # detekcija nuo antro CI run'o ant tų pačių snapshots'ų.
+        # snapshots negalioja cross-OS. `--update-snapshots=missing` sukuria
+        # trūkstamus *-linux.png, BET tas testas vis tiek žymimas FAILED
+        # ("A snapshot doesn't exist ..., writing actual" — patikrinta 2026-07-31,
+        # run 30636260761). Job'as žalias tik kai VISI baseline'ai jau repo'e.
+        # Workflow trūkstamiems: 1) run sukuria (job raudonas — normalu) →
+        # 2) artifact `visual-snapshots-linux` → 3) commit naują PNG į repo →
+        # 4) kitas run lygina ir turi būti žalias.
         env:
           CI: 'true'
         run: npx playwright test specs/visual --project=desktop-chromium --update-snapshots=missing
