@@ -20,13 +20,14 @@ import AxeBuilder from '@axe-core/playwright';
  *         alt dabar turi 3 pakopas (legend → title → „Reklaminis skydelis N/M")
  *     Po to skip-listas susiaurintas nuo 4 iki 1 įrašo — likę 3 buvo REALIAI pataisyti,
  *     tad dabar jie veikia kaip regresijos sargai (jei grįš — testas kris).
+ *   - 2026-07-31 ✅ color-contrast — paletė pataisyta temoje (buvo homepage 114, 404 — 55
+ *     nodes; po fix'o abu 0): --muted #9a9088→#6f675f, --muted2 #bbb→#767676, tekstams
+ *     naujas --gold-text #8a6a12 (dekoratyviniams liko --gold), classic p{#7a7a7a}
+ *     perrašymai, newsletter submit gavo matomą stilių. Skip-listas dabar TUŠČIAS —
+ *     visos 4 buvusios išimtys veikia kaip regresijos sargai.
  */
 
-const KNOWN_VIOLATIONS = new Set([
-  // Vienintelis likęs baseline. 2026-07-31 matavimas: homepage 114 nodes, 404 — 55.
-  // Tai temos spalvų palečių sprendimas, ne kodo bug'as → flag, neblock.
-  'color-contrast',
-]);
+const KNOWN_VIOLATIONS = new Set<string>([]);
 
 test.describe('A11y: WCAG 2.1 AA — axe-core', () => {
   test('TC-A11Y-001: homepage neturi NAUJŲ critical/serious violations', async ({ guestPage }) => {
