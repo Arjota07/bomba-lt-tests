@@ -93,9 +93,18 @@ for ENTRY in "${SUITES[@]}"; do
   echo "--- Running: $SUITE ($PROJECT) ---"
   SUITE_LOG="$OUT_DIR/${SUITE}.log"
   set +e
-  npx playwright test "tests/e2e/specs/$SUITE" --project="$PROJECT" --reporter=line > "$SUITE_LOG" 2>&1
+  # 🔴 2026-07-31: buvo tik --reporter=line, tad HTML report NEgeneruodavo išvis —
+  # gale kopijuota `playwright-report/` būdavo pasenusi liekana nuo rankinių paleidimų.
+  # Dabar: line (į log'ą) + html; kiekviena suite'ė → savo html-report/<suite>/.
+  # PW_TEST_HTML_REPORT_OPEN=never — kad launchd fone neatidarinėtų naršyklės.
+  rm -rf playwright-report
+  PW_TEST_HTML_REPORT_OPEN=never npx playwright test "tests/e2e/specs/$SUITE" --project="$PROJECT" --reporter=line,html > "$SUITE_LOG" 2>&1
   RC=$?
   set -e 2>/dev/null || true
+  if [ -d "playwright-report" ]; then
+    mkdir -p "$OUT_DIR/html-report"
+    mv playwright-report "$OUT_DIR/html-report/$SUITE" 2>/dev/null || true
+  fi
   case "$SUITE" in
     smoke)       EXIT_SMOKE=$RC ;;
     security)    EXIT_SECURITY=$RC ;;
