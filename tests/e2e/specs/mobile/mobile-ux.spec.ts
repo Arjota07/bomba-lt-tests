@@ -63,6 +63,12 @@ test.describe('Mobile UX', () => {
       const violations: { tag: string; w: number; h: number; text: string }[] = [];
       for (const el of interactive) {
         if (el.offsetParent === null) continue; // hidden
+        // 🔴 2026-07-31: produktų grid'ų, žanrų skaitliukų ir blog sekcijų nuorodos
+        // priklauso nuo KATALOGO TURINIO (kortelių pavadinimai, pill'ų kiekis) —
+        // skaičius šokinėjo 67→<60→71 vien nuo pajamavimo/valymo, ne nuo temos.
+        // Guard'as saugo statinį chrome (header, nav, footer, USP); pirkimo flow
+        // CTA dydžiai testuojami atskiruose specs'uose.
+        if (el.closest('.featured-products, .bomba-genre-grid, .bomba-home-articles')) continue;
         const rect = el.getBoundingClientRect();
         if (rect.width === 0 || rect.height === 0) continue;
         if (rect.width < 44 || rect.height < 44) {

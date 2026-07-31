@@ -89,10 +89,19 @@ test.describe('Visual regression: Homepage', () => {
     await expect(guestPage).toHaveScreenshot('homepage-full.png', {
       fullPage: true,
       maxDiffPixelRatio: 0.05, // 5% tolerance (was 3% — carousel residual jitter)
+      // 🔴 2026-07-31 (v2): produktų grid'ai (Naujienos / Ką tik gauta / Perkamiausi),
+      // žanrų-formatų skaitliukai ir blog sąrašas keičiasi su KATALOGO TURINIU kasdien —
+      // be maskių testas klykia po kiekvieno pajamavimo/valymo, nors svetainė sveika
+      // (16:31 run: 9 % diff vien iš turinio rotacijos). Šis testas saugo LAYOUT'Ą
+      // ir statinį chrome, ne katalogo turinį. Maskė slepia turinį, bet ne aukštį —
+      // sekcijų aukščiai stabilūs (fiksuotas kortelių tinklelis).
       mask: [
         guestPage.locator('.bomba-hero-slider'),
         guestPage.locator('.carousel'),
         guestPage.locator('#imz-consent'),
+        guestPage.locator('section.featured-products'),
+        guestPage.locator('.bomba-genre-grid'),
+        guestPage.locator('.bomba-home-articles'),
       ],
     });
   });
