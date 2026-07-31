@@ -8,18 +8,24 @@ import AxeBuilder from '@axe-core/playwright';
  *
  * Mode: PRODUCTION READ-ONLY. Tik publikuoja violations.
  *
- * Žinomos issue (2026-05-24 baseline po bom-008 deploy):
- *   - bom-001: nėra <h1> ant homepage'os (heading-order, page-has-heading-one)
- *   - bom-008: ✅ pataisyta — mobile search btn turi aria-label="Ieškoti"
- *
  * Tests neturi fail'inti dėl baseline violations — fail'ina TIK jei atsiranda NAUJI.
+ *
+ * Istorija:
+ *   - bom-008 ✅ 2026-05-24 — mobile search btn turi aria-label="Ieškoti"
+ *   - bom-001 ✅ — homepage'oje yra sr-only <h1 class="bomba-sr-h1">
+ *   - 2026-07-31 ✅ hero slider (ps_imageslider child override):
+ *       aria-toggle-field-name + nested-interactive — pašalinti paveldėti
+ *         listbox/option role nuo <ul>/<li> (karuselės skaidrė nėra listbox option)
+ *       link-name — visi 7 slide'ai DB turi tuščią legend ⇒ alt="" ⇒ nuoroda be vardo;
+ *         alt dabar turi 3 pakopas (legend → title → „Reklaminis skydelis N/M")
+ *     Po to skip-listas susiaurintas nuo 4 iki 1 įrašo — likę 3 buvo REALIAI pataisyti,
+ *     tad dabar jie veikia kaip regresijos sargai (jei grįš — testas kris).
  */
 
 const KNOWN_VIOLATIONS = new Set([
-  'page-has-heading-one',  // bom-001 DEPLOYED 2026-05-24 — SR-only h1
-  'heading-order',         // bom-001 follow-up (heading hierarchy)
-  'color-contrast',        // tema priklausoma — flag, neblock
-  'nested-interactive',    // ps_imageslider <li role="option"> turi focusable child (PS core, upstream issue)
+  // Vienintelis likęs baseline. 2026-07-31 matavimas: homepage 114 nodes, 404 — 55.
+  // Tai temos spalvų palečių sprendimas, ne kodo bug'as → flag, neblock.
+  'color-contrast',
 ]);
 
 test.describe('A11y: WCAG 2.1 AA — axe-core', () => {

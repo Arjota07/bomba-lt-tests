@@ -13,3 +13,6 @@ probe-*.js
 # Allure (raw + generated)
 allure-results/
 allure-report/
+
+# CodeGraph local index
+.codegraph/

@@ -1,7 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Playwright config for imuzika.lt — PrestaShop 9.1.1
+ * Playwright config for imuzika.lt — PrestaShop 9.1.4
+ *
+ * 🔴 2026-05-26 cutover: bomba.lt 301→ www.imuzika.lt (tas pats PS9, failai
+ * fiziškai domains/bomba.lt/public_html/). Kanoninis testų taikinys = imuzika.lt.
+ * Absoliučių `https://bomba.lt/...` URL testuose NEBEBŪTI — jie apeina baseURL
+ * ir prideda papildomą redirect hop'ą (2026-07-30 tai kėlė 429 rate-limit'ą).
  *
  * MODE: PRODUCTION READ-ONLY
  * - Tikrina tik publicus puslapius
@@ -12,7 +17,7 @@ import { defineConfig, devices } from '@playwright/test';
  *   npm test                 # all
  *   npm run test:smoke       # smoke only
  *   npm run test:visual      # visual regression
- *   BASE_URL=https://bomba.lt npm test  # override URL
+ *   BASE_URL=https://www.imuzika.lt npm test  # override URL
  */
 
 // Post-cutover (2026-05-26): bomba.lt → 302 → www.imuzika.lt (path dropped to root).
@@ -24,7 +29,11 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 1,
-  workers: process.env.CI ? 2 : undefined,
+  // 🔴 2026-07-31: buvo `undefined` = ~pusė CPU branduolių (8 CPU → 4 workeriai).
+  // Prieš PRODUCTION tai duodavo HTTP 429 checkout suite'e (ir „last status: 0"
+  // nutrauktus requestus), t. y. monitorius pats gamindavo melagingą DRIFT'ą.
+  // 2 workeriai = mandagus tempas prod'ui; perrašyti PW_WORKERS=4 lokaliai, jei reikia greičio.
+  workers: process.env.PW_WORKERS ? Number(process.env.PW_WORKERS) : 2,
 
   reporter: [
     ['html', { open: 'never' }],
@@ -36,7 +45,7 @@ export default defineConfig({
       suiteTitle: false,
       environmentInfo: {
         target: BASE_URL,
-        framework: 'PrestaShop 9.1.1',
+        framework: 'PrestaShop 9.1.4',
         mode: 'production-read-only',
         node: process.version,
         os: process.platform,

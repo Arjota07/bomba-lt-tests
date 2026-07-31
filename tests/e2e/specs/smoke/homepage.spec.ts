@@ -2,7 +2,7 @@ import { test, expect } from '../../fixtures/storage';
 
 /**
  * Smoke tests pritaikyti REALIAI imuzika.lt HTML strukturai
- * (po 2026-05-23/24 dual investigation):
+ * (po 2026-05-23/24 dual investigation; peržiūrėta 2026-07-31):
  *
  * Findings:
  *  - <header>, <main>, <footer> HTML5 tag'ai EGZISTUOJA ✓
@@ -11,8 +11,12 @@ import { test, expect } from '../../fixtures/storage';
  *  - Search yra <button>IEŠKOTI</button>, NE <input type="search">
  *  - Mobile: hamburger button (.md:hidden) NEturi aria-label (bom-008 a11y finding)
  *  - Search button mobile'e PASLĖPTAS iki hamburger atidaroma
- *  - NĖRA <h1> ant homepage'os desktop (a11y P1 — bom-001)
  *  - NĖRA cookie consent banner'io (P0 BLOCKING — bom-002, paruošta ~/Projektai/bomba.lt-gdpr/)
+ *
+ * 2026-07-31 pataisyta (05-26 cutover drift):
+ *  - <title> nebe „bomba", o „… | imuzika.lt" → regex atnaujintas
+ *  - homepage'oje H1 JAU YRA: <h1 class="bomba-sr-h1"> (sr-only, 1 vnt.) —
+ *    senas komentaras „NĖRA <h1> ant homepage'os" nebegalioja (bom-001 uždarytas)
  */
 
 test.describe('Smoke: Homepage', () => {
@@ -30,8 +34,13 @@ test.describe('Smoke: Homepage', () => {
     await expect(guestPage.getByRole('main')).toBeVisible();
     await expect(guestPage.getByRole('contentinfo')).toBeVisible();
 
-    // Title turi turėti site name (post-cutover: iMuzika.lt)
+    // Title turi turėti site name.
+    // 🔴 2026-07-31: buvo /bomba/i — po 05-26 cutover'io title = „… | imuzika.lt",
+    // tad testas krito 21× iš eilės, o realios problemos NEBUVO.
     await expect(guestPage).toHaveTitle(/imuzika/i);
+
+    // Lygiai vienas <h1> (SEO + a11y). Homepage'oje jis sr-only: .bomba-sr-h1
+    await expect(guestPage.getByRole('heading', { level: 1 })).toHaveCount(1);
 
     // Console errors filter: praleidžiam network errors + ŽINOMUS third-party noise
     // (analytics, ads, social, cookie consent — jie už mūsų kontrolės ribų)
