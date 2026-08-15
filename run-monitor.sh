@@ -36,6 +36,40 @@ fi
 OUT_DIR="$DROPBOX_BASE/$TS"
 mkdir -p "$OUT_DIR"
 
+# ---------------------------------------------------------------------------
+# Failure fingerprint / dedup (idėja pasiskolinta iš rutvej/DAA,
+# app/common/fingerprint.py — MIT): normalizuojam nepastovias detales,
+# hash'uojam, ir TĄ PATĮ gedimą per cooldown langą siunčiam el. paštu tik kartą.
+# Naujas arba pasikeitęs gedimas — siunčiamas visada, nepaisant cooldown'o.
+# State failas guli Dropbox šaknyje (ne per-run kataloge), kad išgyventų
+# 30-dienų cleanup'ą (jis trina tik `-type d`) ir repo perklonavimą.
+#   E2E_DEDUP_COOLDOWN_H=<val>  — cooldown valandomis (default 168 = 7 d.)
+#   E2E_NO_DEDUP=1              — priverstinai siųsti (dedup apeinamas)
+# ---------------------------------------------------------------------------
+DEDUP_STATE="$DROPBOX_BASE/.failure-fingerprint"
+DEDUP_COOLDOWN_H="${E2E_DEDUP_COOLDOWN_H:-168}"
+
+sha256_16() {
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 | cut -c1-16
+  else
+    sha256sum | cut -c1-16
+  fi
+}
+
+# Ištraukia normalizuotus test-level gedimų pavadinimus iš Playwright `line`
+# reporter'io log'o. Nupjaunam: ANSI spalvas, "  3) " numeraciją, dekoratyvinį
+# ─── padą ir `:eilutė:stulpelis` (kad spec'o redagavimas nepakeistų atspaudo).
+suite_failures() {
+  grep -E '^[[:space:]]*[0-9]+\) ' "$1" 2>/dev/null \
+    | sed -e $'s/\033\[[0-9;]*m//g' \
+          -e 's/^[[:space:]]*[0-9][0-9]*)[[:space:]]*//' \
+    | while IFS= read -r L; do printf '%s\n' "${L%%─*}"; done \
+    | sed -e 's/:[0-9][0-9]*:[0-9][0-9]*//g' \
+          -e 's/[[:space:]]*$//' \
+    | sort -u
+}
+
 LOG="$OUT_DIR/run.log"
 exec > >(tee -a "$LOG") 2>&1
 
@@ -164,9 +198,60 @@ if [ "$OVERALL" -ne 0 ]; then
   [ "$EXIT_MOBILE" -ne 0 ]      && FAIL_LIST="$FAIL_LIST mobile"
   [ "$EXIT_VISUAL" -ne 0 ]      && FAIL_LIST="$FAIL_LIST visual"
 
-  # macOS notification (instant, dingsta jei Mac off)
+  # macOS notification (instant, dingsta jei Mac off) — dedup'as jos NELIEČIA:
+  # lokalus toast'as nekaupia inbox'o, o vizualus signalas kas paleidimą naudingas.
   osascript -e "display notification \"FAIL:$FAIL_LIST -- zr. Dropbox/02_PROJEKTAI/BOMBA.LT/e2e-monitor-results/$TS\" with title \"bomba.lt DRIFT DETECTED\" sound name \"Sosumi\"" 2>/dev/null || true
   echo "Notification sent."
+
+  # --- Gedimo pirštų atspaudas + cooldown sprendimas ------------------------
+  SIG_RAW=$(
+    for SUITE in smoke security a11y performance checkout mobile visual; do
+      eval "RC=\$EXIT_$(echo $SUITE | tr a-z A-Z)"
+      [ "${RC:-0}" -eq 0 ] && continue
+      DETAIL=$(suite_failures "$OUT_DIR/${SUITE}.log")
+      if [ -n "$DETAIL" ]; then
+        printf '%s\n' "$DETAIL" | sed "s|^|$SUITE\||"
+      else
+        # crash / timeout / config error — test-level eilučių log'e nėra
+        echo "$SUITE|<no-test-detail> exit=$RC"
+      fi
+    done
+  )
+  FINGERPRINT=$(printf '%s\n' "$SIG_RAW" | sha256_16)
+
+  PREV_FP=""
+  PREV_EPOCH=0
+  if [ -f "$DEDUP_STATE" ]; then
+    read -r PREV_FP PREV_EPOCH _ < "$DEDUP_STATE" 2>/dev/null || true
+  fi
+  case "${PREV_EPOCH:-}" in
+    ''|*[!0-9]*) PREV_EPOCH=0 ;;
+  esac
+  NOW_EPOCH=$(date +%s)
+  AGE_H=$(( (NOW_EPOCH - PREV_EPOCH) / 3600 ))
+
+  SEND_EMAIL=1
+  DEDUP_REASON="naujas gedimo atspaudas ($FINGERPRINT)"
+  if [ -n "$PREV_FP" ] && [ "$FINGERPRINT" = "$PREV_FP" ]; then
+    if [ "$AGE_H" -lt "$DEDUP_COOLDOWN_H" ]; then
+      SEND_EMAIL=0
+      DEDUP_REASON="tas pats gedimas ($FINGERPRINT), praejo ${AGE_H}h < ${DEDUP_COOLDOWN_H}h cooldown"
+    else
+      DEDUP_REASON="tas pats gedimas ($FINGERPRINT), cooldown baigesi (${AGE_H}h >= ${DEDUP_COOLDOWN_H}h)"
+    fi
+  fi
+  if [ "${E2E_NO_DEDUP:-0}" = "1" ]; then
+    SEND_EMAIL=1
+    DEDUP_REASON="dedup apeitas (E2E_NO_DEDUP=1), atspaudas $FINGERPRINT"
+  fi
+  echo "Dedup: $DEDUP_REASON"
+  {
+    echo ""
+    echo "Fingerprint: $FINGERPRINT"
+    echo "Dedup:       $DEDUP_REASON"
+    echo "Signature:"
+    printf '%s\n' "$SIG_RAW" | sed 's/^/  /'
+  } >> "$OUT_DIR/summary.txt"
 
   # Email notification (persistent, gauni net jei Mac off-hours)
   EMAIL_BODY=$({
@@ -177,6 +262,7 @@ if [ "$OVERALL" -ne 0 ]; then
     echo "Target: $TARGET"
     echo ""
     echo "Failed suites:$FAIL_LIST"
+    echo "Fingerprint:  $FINGERPRINT  ($DEDUP_REASON)"
     echo ""
     echo "Suite results:"
     for ENTRY in \
@@ -214,9 +300,24 @@ if [ "$OVERALL" -ne 0 ]; then
   if [ "${E2E_NO_EMAIL:-0}" = "1" ]; then
     echo "Email PRALEISTAS (E2E_NO_EMAIL=1). Laiško turinys būtų:"
     echo "$EMAIL_BODY" | head -20
+  elif [ "$SEND_EMAIL" -eq 0 ]; then
+    # Dedup nutildė: tas pats gedimas jau praneštas, cooldown dar nepasibaigęs.
+    # State'o NEATNAUJINAM — langas skaičiuojamas nuo PASKUTINIO išsiųsto laiško,
+    # kitaip nuolat krentantis suite'as atnaujintų laikrodį ir laiškas
+    # nebeateitų niekada.
+    echo "Email PRALEISTAS (dedup): $DEDUP_REASON"
   else
     "$SELF_DIR/send-email.sh" "sarmaitis@gmail.com" "[imuzika.lt] DRIFT$FAIL_LIST — $TS" "$EMAIL_BODY" 2>&1 | tail -3
     echo "Email sent to sarmaitis@gmail.com"
+    printf '%s %s %s\n' "$FINGERPRINT" "$NOW_EPOCH" "$TS" > "$DEDUP_STATE" 2>/dev/null || \
+      echo "⚠️  Nepavyko įrašyti dedup state ($DEDUP_STATE) — kitas run'as siųs pakartotinai." >&2
+  fi
+else
+  # Viskas žalia — pamirštam ankstesnį atspaudą, kad po atsistatymo tas pats
+  # gedimas vėl būtų traktuojamas kaip NAUJAS ir praneštas nedelsiant.
+  if [ -f "$DEDUP_STATE" ]; then
+    rm -f "$DEDUP_STATE" 2>/dev/null || true
+    echo "Dedup: viskas PASS — state išvalytas."
   fi
 fi
 
