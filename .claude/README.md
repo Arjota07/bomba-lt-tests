@@ -28,36 +28,35 @@ kainuoja atitinkamai tokenų ir 5h limito.
 ## Įdiegimas į Mac (globaliai, visiems repo)
 
 Debesų sesijose komanda atsiranda pati, nes jos startuoja šiame repo. Mac'e taip
-nebus — ten dirbi kituose kataloguose. Sprendimas: symlink į naudotojo lygio
-komandų katalogą, kuris galioja **visuose** projektuose.
+nebus — ten dirbi kituose kataloguose. Sprendimas: įdėti failą į naudotojo lygio
+komandų katalogą `~/.claude/commands/`, kuris galioja **visuose** projektuose.
 
-**Po to, kai PR sumergintas į `master`** — symlink, kad `git pull` atnaujintų ir
-komandą:
-
-```bash
-mkdir -p ~/.claude/commands
-cd ~/Projektai/bomba.lt-tests && git pull
-ln -sf ~/Projektai/bomba.lt-tests/.claude/commands/sesijos.md ~/.claude/commands/sesijos.md
-```
-
-**Kol PR dar neatidarytas/nesumergintas** — symlink rodytų į neegzistuojantį
-failą, nes `master` jo dar neturi (taip ir nutiko 2026-08-15 10:09 — Mac'e buvo
-lūžęs symlink; pakeistas tikru failu iš šakos). Tada imk failą tiesiai iš šakos, neliečiant
-darbinio katalogo:
+**Diegimas ir atnaujinimas — tikru failu (rekomenduojama):**
 
 ```bash
 mkdir -p ~/.claude/commands
-cd ~/Projektai/bomba.lt-tests
-git fetch origin claude/active-sessions-questions-2br5uk
-git show origin/claude/active-sessions-questions-2br5uk:.claude/commands/sesijos.md \
-  > ~/.claude/commands/sesijos.md
+git -C ~/Projektai/bomba.lt-tests pull
+cp ~/Projektai/bomba.lt-tests/.claude/commands/sesijos.md ~/.claude/commands/sesijos.md
 ```
 
-`git show` tik nuskaito failą iš šakos — nekeičia nei checkout'o, nei darbinio
-katalogo, tad nepertrauks to, ką tuo metu darai repo.
+Ta pati komanda ir įdiegia, ir atnaujina — paleisk ją po kiekvieno šio failo
+pakeitimo repo.
 
-Patikrink repo kelią: README nurodo `~/Projektai/bomba.lt-tests` (katalogas su
-tašku, nors repo slug yra `bomba-lt-tests`).
+**Kodėl ne symlink.** Symlink atnaujintų komandą automatiškai su `git pull`, bet
+lūžta, kai tik klonuotė atsiduria šakoje be šio failo — būtent taip ir nutiko
+2026-08-15 10:09 (symlink rodė į `master`, kuriame failo dar nebuvo; `/sesijos`
+tiesiog neegzistavo). Tikras failas nuo to apsaugotas; kaina — reikia paleisti
+`cp` po pakeitimų.
+
+**⚠️ Mac'e yra DVI šio repo klonuotės** (abi rodo į `Arjota07/bomba-lt-tests`):
+
+| Kelias | Būsena |
+|---|---|
+| `~/Projektai/bomba.lt-tests` (su **tašku**) | aktyvi — ją naudok |
+| `~/Projektai/bomba-lt-tests` (su **brūkšneliu**) | senesnė, atsilikusi |
+
+Repo slug yra `bomba-lt-tests`, bet aktyvus katalogas — su tašku. Prieš `pull`
+patikrink, kad esi tame, kurio HEAD naujesnis.
 
 Po to bet kuriame Mac'o projekte veikia `/sesijos`.
 
