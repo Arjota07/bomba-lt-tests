@@ -135,13 +135,22 @@ Siųsk žodis žodin, kad atsakymai būtų palyginami tarp sesijų:
 
 ```
 STATUSO PATIKRA (automatinė žinutė iš valdymo sesijos). Nevykdyk jokių komandų,
-nekeisk failų, nedaryk commit'ų ar push. Tik atsakyk tekstu, lietuviškai, iki 10
+nekeisk failų, nedaryk commit'ų ar push.
+
+ATSAKYK PER `SendMessage` ĮRANKĮ: `to` = šios žinutės `from` atributas, nukopijuotas
+tiksliai (paprastas tekstas tavo pokalbyje manęs NEPASIEKIA). Lietuviškai, iki 10
 eilučių:
 
 1. Kas šioje sesijoje liko nebaigta? Trumpai, punktais.
 2. Ko lauki iš manęs, kad galėtum tęsti? Jei nieko nelauki — parašyk „nieko".
 3. Ar šią sesiją galima archyvuoti? TAIP / NE + vienas sakinys kodėl.
 ```
+
+**Kodėl „per SendMessage" parašyta didžiosiomis:** 2026-08-15 Mac'o testas —
+su formuluote „tik atsakyk tekstu" visos 3 apklaustos sesijos pabudo per ~10 s ir
+atsakė, bet paprastu tekstu savo pokalbyje; valdymo sesija negavo nieko. Debesų
+kelyje (B) tai nekliudo (ten skaitomas `post_turn_summary`), Mac'o kelyje (A) —
+kritiška.
 
 Neklausk „ar dar aktualu tęsti" — sesija to nežino, tai vartotojo sprendimas.
 Klausk to, ką ji gali pasakyti tiksliai: kas nebaigta ir ko laukiama.
@@ -150,7 +159,18 @@ Klausk to, ką ji gali pasakyti tiksliai: kas nebaigta ir ko laukiama.
 
 ## 4. Surink atsakymus
 
-**Kelias A:** atsakymai jau atėjo kaip `<cross-session-message>`.
+**Kelias A:** atsakymai ateina kaip `<cross-session-message>` per ~10–30 s
+(idle sesijos pabunda pačios — patikrinta 2026-08-15). Jei po ~2 min atsakymo
+nėra, sesija greičiausiai atsakė paprastu tekstu — perskaityk jį iš jos
+transkripto (tik Mac'e, tik šios mašinos sesijoms):
+
+```bash
+grep -l "STATUSO PATIKRA (automatin" ~/.claude/projects/*/*.jsonl
+```
+
+ir iš rasto failo išspausdink `assistant` teksto blokus po tos eilutės
+(`python3 -c` su `json.loads` per eilutę). Nesiųsk klausimo antrą kartą — tai
+dar vienas turas tai sesijai.
 
 **Kelias B:** palauk ~1–2 min, tada kiekvienai sesijai `get_session` ir skaityk
 `post_turn_summary`:

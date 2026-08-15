@@ -41,7 +41,8 @@ ln -sf ~/Projektai/bomba.lt-tests/.claude/commands/sesijos.md ~/.claude/commands
 ```
 
 **Kol PR dar neatidarytas/nesumergintas** — symlink rodytų į neegzistuojantį
-failą, nes `master` jo dar neturi. Tada imk failą tiesiai iš šakos, neliečiant
+failą, nes `master` jo dar neturi (taip ir nutiko 2026-08-15 10:09 — Mac'e buvo
+lūžęs symlink; pakeistas tikru failu iš šakos). Tada imk failą tiesiai iš šakos, neliečiant
 darbinio katalogo:
 
 ```bash
@@ -75,6 +76,16 @@ nieko nelieka. Todėl `/sesijos` verta paleidinėti būtent iš Mac'o, kai tik j
 
 Žinomos ribos:
 
+- Apklausta sesija **turi atsakyti per `SendMessage`** — jos paprastas tekstas
+  valdymo sesijos nepasiekia. Klausimo tekstas to reikalauja aiškiai (pataisyta
+  po 2026-08-15 Mac'o testo: su „tik atsakyk tekstu" visos 3 sesijos atsakė
+  pokalbyje ir nieko negrįžo). Atsakymo `from-name` yra sesijos **pavadinimas**
+  (pvz. „Claude version update"), ne `ListAgents` vardas (`homefolder-7c`);
+  Remote Control (`bridge`) sesijos atsakymas ateina su `from="unknown"`.
+- Idle Mac'o sesijos pabunda pačios ir atsako per ~10–30 s (patikrinta
+  2026-08-15, transportai `uds` ir `bridge`). Neatėjus atsakymui — jį galima
+  perskaityti iš sesijos transkripto `~/.claude/projects/*/*.jsonl` (žr. komandos
+  4 skyrių), nesiunčiant klausimo antrą kartą.
 - Debesų sesija gauna `SendMessage` žinutę, bet atsakyti atgal kol kas negali —
   jos atsakymas matomas tik pačiame pokalbyje.
 - `bridge` (Mac) sesijos nepildo `post_turn_summary`, todėl debesų kelias jų
