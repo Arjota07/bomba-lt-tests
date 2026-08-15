@@ -1,7 +1,7 @@
 ---
 description: Apklausia visas aktyvias Claude sesijas — kas liko nebaigta, ko laukia, ar galima archyvuoti
 argument-hint: "[idle|visos|<dienos>d]"
-allowed-tools: mcp__Claude_Code_Remote__list_sessions, mcp__Claude_Code_Remote__get_session, mcp__Claude_Code_Remote__list_triggers, mcp__Claude_Code_Remote__create_trigger, mcp__Claude_Code_Remote__fire_trigger, mcp__Claude_Code_Remote__delete_trigger, Bash
+allowed-tools: ListAgents, SendMessage, mcp__Claude_Code_Remote__list_sessions, mcp__Claude_Code_Remote__get_session, mcp__Claude_Code_Remote__list_triggers, mcp__Claude_Code_Remote__create_trigger, mcp__Claude_Code_Remote__fire_trigger, Bash
 ---
 
 # Sesijų statuso apklausa
@@ -15,12 +15,38 @@ Argumentas: `$ARGUMENTS`
 - `visos` — įskaitant RUNNING sesijas
 - `<n>d` — tik tos, kurios neliestos daugiau nei n dienų (pvz. `7d`)
 
+Komanda veikia ir Mac'e, ir debesyje, bet **skirtingais mechanizmais**. Pirmas
+žingsnis — nustatyti, kuriuo.
+
+---
+
+## 0. Pasirink mechanizmą
+
+Iškviesk `ListAgents`.
+
+| `ListAgents` grąžina | Kelias | Kur |
+|---|---|---|
+| sesijų sąrašą | **A: SendMessage** (žr. 2A) | Mac su prijungtu Remote Control |
+| „No reachable agents" | **B: Routine** (žr. 2B) | debesų sesija (iOS/web) |
+
+Kelias A geresnis visais atžvilgiais — žinutė nueina tiesiai, atsakymas grįžta
+atgal, nieko nelieka Routines sąraše. Rinkis jį, kai tik `ListAgents` ką nors
+grąžina. Kelią B naudok tik tada, kai A neprieinamas.
+
+Jei nė vienas neveikia (`ListAgents` tuščias **ir** `mcp__Claude_Code_Remote__*`
+įrankių nėra) — pasakyk tai vartotojui ir stok. Nebandyk apeiti per `gh`,
+`curl` ar API raktus.
+
+---
+
 ## 1. Surink sesijų sąrašą
 
-Iškviesk `mcp__Claude_Code_Remote__list_sessions` su `mine: true`, `limit: 100`.
+**Kelias A:** sąrašą duoda pats `ListAgents` — kiekviena eilutė prasideda
+sesijos vardu, kuris ir yra adresas.
 
-Atsakymas beveik visada viršija tokenų ribą ir bus įrašytas į failą. Neskaityk jo
-per `Read` — eilutės per ilgos. Filtruok per Bash:
+**Kelias B:** `mcp__Claude_Code_Remote__list_sessions` su `mine: true`,
+`limit: 100`. Atsakymas beveik visada viršija tokenų ribą ir bus įrašytas į
+failą. Neskaityk jo per `Read` — eilutės per ilgos. Filtruok per Bash:
 
 ```bash
 python3 -c "
@@ -39,18 +65,42 @@ Jei `has_more` yra `true` — kartok su `after_id: <last_id>`, kol nebeliks
 neaarchyvuotų sesijų. Praktikoje senesnės nei ~2 sav. jau visos archyvuotos, tad
 po pirmo puslapio be naujų radinių gali stoti.
 
-**Visada praleisk savo paties sesiją** — jos ID yra sistemos prompt'e nurodytoje
-sesijos nuorodoje. Nusiuntus klausimą sau, gausis begalinis ciklas.
+**Visada praleisk savo paties sesiją.** Nusiuntus klausimą sau, gausis
+begalinis ciklas.
 
-## 2. Kiekvienai atrinktai sesijai — Routine
+---
 
-Tiesioginio „broadcast" API nėra ir `SendMessage` šių sesijų nepasiekia
-(`ListAgents` grąžina tuščią sąrašą, nes Remote Control čia neprijungtas).
-Vienintelis veikiantis kelias — *poke-only* Routine, pririštas prie sesijos ID.
+## 2A. Kelias A — SendMessage
 
-Routine'us **pernaudok, nekurk kiekvieną kartą iš naujo**. Pirma iškviesk
-`list_triggers` ir ieškok jau esančio šiai sesijai pagal **abu** pavadinimų
-formatus:
+Kiekvienai atrinktai sesijai:
+
+```
+SendMessage
+  to:      <vardas iš ListAgents eilutės>
+  summary: statuso patikra
+  message: <3 skyriaus tekstas>
+```
+
+Vardą kopijuok tiksliai taip, kaip jį atspausdino `ListAgents`. ` [ref]` pridėk
+tik tada, kai dvi eilutės dalijasi tuo pačiu vardu arba klaida to paprašo.
+
+Atsakymai ateina automatiškai, apvilkti `<cross-session-message from="...">` —
+inbox'o tikrinti nereikia. Surink juos ir eik į 4 skyrių.
+
+**Riba:** debesų sesija gauna žinutę, bet atsakyti atgal kol kas negali. Jei
+tarp adresatų yra debesų sesijų, jų atsakymo nelauk — pasakyk vartotojui, kad
+tas matyti tik pačiame pokalbyje.
+
+---
+
+## 2B. Kelias B — poke-only Routine
+
+Naudoti tik kai `ListAgents` tuščias. `SendMessage` šių sesijų nepasiekia,
+broadcast API nėra, tad vienintelis kelias — Routine, pririštas prie sesijos ID
+ir paleidžiamas ranka.
+
+Routine'us **pernaudok, nekurk kiekvieną kartą iš naujo**. Pirma `list_triggers`
+ir ieškok jau esančio šiai sesijai pagal **abu** pavadinimų formatus:
 
 - `sesijos-check:<session_id>` — dabartinis formatas
 - `Statuso patikra — <sesijos pavadinimas>` — pirmoji, rankomis kurta karta
@@ -59,23 +109,25 @@ formatus:
 Tada:
 
 - **radai** (bet kuriuo formatu) → iškart `fire_trigger` su tuo ID
-- **neradai** → `create_trigger` (žemiau), tada `fire_trigger`
-
-Senųjų nepervadink ir netrink — `update_trigger` ir `delete_trigger` šioje
-aplinkoje atmetami permission sluoksnyje. Jei vartotojas nori tvarkos Routines
-sąraše, tai daroma ranka per claude.ai Routines UI.
+- **neradai** → `create_trigger`, tada `fire_trigger`
 
 `create_trigger` parametrai:
 
-- `name`: `sesijos-check:<session_id>` — stabilus, mašinai atpažįstamas
+- `name`: `sesijos-check:<session_id>`
 - `persistent_session_id`: sesijos ID
 - `prompt`: 3 skyriaus tekstas
 - **be** `cron_expression` ir **be** `run_once_at` — taip Routine niekada
-  nesuveiks savaime, tik kai jį paleidi rankiniu būdu
+  nesuveiks savaime
+
+Senųjų nepervadink ir netrink — `update_trigger` ir `delete_trigger` šioje
+aplinkoje atmetami permission sluoksnyje (`create` ir `fire` praeina). Tvarkyti
+ranka per claude.ai Routines UI.
 
 Paleidinėk paketais po ~5. Permission dialogas gali atmesti visą paketą iš karto
-(`Denied by user`) — tokiu atveju nekartok tų pačių kvietimų aklai, o parodyk
-vartotojui, kurios atmestos, ir paklausk, ar bandyti dar kartą.
+(`Denied by user`) — tada nekartok aklai, o parodyk vartotojui, kurios atmestos,
+ir paklausk, ar bandyti dar kartą.
+
+---
 
 ## 3. Klausimo tekstas
 
@@ -94,9 +146,13 @@ eilučių:
 Neklausk „ar dar aktualu tęsti" — sesija to nežino, tai vartotojo sprendimas.
 Klausk to, ką ji gali pasakyti tiksliai: kas nebaigta ir ko laukiama.
 
+---
+
 ## 4. Surink atsakymus
 
-Palauk ~1–2 min, tada kiekvienai sesijai `get_session` ir skaityk
+**Kelias A:** atsakymai jau atėjo kaip `<cross-session-message>`.
+
+**Kelias B:** palauk ~1–2 min, tada kiekvienai sesijai `get_session` ir skaityk
 `post_turn_summary`:
 
 - `status_category` — `need_input` (laukia tavęs) / `review_ready` (baigta)
@@ -105,11 +161,13 @@ Palauk ~1–2 min, tada kiekvienai sesijai `get_session` ir skaityk
 
 **Svarbi riba:** `post_turn_summary` pildo tik `anthropic_cloud` sesijos.
 `bridge` sesijos (Mac'o Claude Code CLI, žyma `remote-control-sdk`) jo nepildo —
-jų atsakymus vartotojas matys tik atsidaręs pokalbį Mac'e. Pasakyk tai atvirai,
+jų atsakymus vartotojas matys tik atsidaręs pokalbį. Pasakyk tai atvirai,
 neapsimesk, kad atsakymo nėra.
 
 Jei `connection_status` yra `disconnected`, žinutė guli eilėje ir suveiks tik
-tada, kai tas Mac'as prisijungs. Tai ne klaida — tiesiog pranešk.
+tada, kai ta mašina prisijungs. Tai ne klaida — tiesiog pranešk.
+
+---
 
 ## 5. Ataskaita
 
@@ -121,10 +179,4 @@ Markdown lentelė, surūšiuota: pirma `need_input`, paskui `review_ready`.
 Po lentelės atskirai išvardink:
 
 - sesijas, kurios atsakė „galima archyvuoti" → pasiūlyk `archive_session`
-- sesijas, kurios dar neatsakė (disconnected) → nurodyk, kad lauks Mac'o
-
-## 6. Sutvarkyk
-
-Routine'ų **netrink** — jie pernaudojami kitam paleidimui ir patys niekada
-nesuveiks. Ištrink (`delete_trigger`) tik tada, kai sesija archyvuojama arba
-vartotojas paprašo išvalyti.
+- sesijas, kurios dar neatsakė → nurodyk, ko jos laukia (prisijungimo ar turo)

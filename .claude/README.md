@@ -22,18 +22,54 @@ sesijoje, startuojančioje šiame repo.
 Grąžina lentelę su kiekvienos sesijos būsena ir pasiūlo, kurias galima
 archyvuoti.
 
-**Ką verta žinoti prieš paleidžiant:**
+**Kiekviena apklausta sesija pabunda ir sunaudoja vieną turą** — 10 sesijų
+kainuoja atitinkamai tokenų ir 5h limito.
 
-- Kiekviena apklausta sesija pabunda ir sunaudoja vieną turą — 10 sesijų kainuoja
-  atitinkamai tokenų ir 5h limito.
-- Debesų (iOS/web) sesijų atsakymus komanda perskaito pati per API.
-- Mac'o (`bridge`) sesijų atsakymų per API perskaityti neįmanoma — juos matysi tik
-  atsidaręs pokalbį Mac'e. Jei Mac'as tuo metu atjungtas, žinutė lauks eilėje.
+## Įdiegimas į Mac (globaliai, visiems repo)
+
+Debesų sesijose komanda atsiranda pati, nes jos startuoja šiame repo. Mac'e taip
+nebus — ten dirbi kituose kataloguose. Sprendimas: symlink į naudotojo lygio
+komandų katalogą, kuris galioja **visuose** projektuose.
+
+```bash
+mkdir -p ~/.claude/commands
+cd ~/Projektai/bomba.lt-tests && git pull
+ln -sf ~/Projektai/bomba.lt-tests/.claude/commands/sesijos.md ~/.claude/commands/sesijos.md
+```
+
+Symlink, o ne kopija — taip `git pull` iškart atnaujina ir komandą, nereikia
+prisiminti perkopijuoti. Patikrink repo kelią: README nurodo
+`~/Projektai/bomba.lt-tests` (katalogas su tašku, nors repo slug yra
+`bomba-lt-tests`).
+
+Po to bet kuriame Mac'o projekte veikia `/sesijos`.
+
+## Du mechanizmai
+
+Komanda pati pasirenka kelią pagal tai, ką grąžina `ListAgents`:
+
+| Aplinka | `ListAgents` | Mechanizmas | Atsakymai |
+|---|---|---|---|
+| **Mac** (Remote Control prijungtas) | grąžina sesijas | `SendMessage` tiesiai | grįžta atgal automatiškai |
+| **Debesys** (iOS/web) | tuščias | poke-only Routine per `fire_trigger` | skaitomi iš `post_turn_summary` |
+
+Mac'o kelias geresnis: žinutė nueina tiesiai, atsakymas grįžta, Routines sąraše
+nieko nelieka. Todėl `/sesijos` verta paleidinėti būtent iš Mac'o, kai tik jis
+įjungtas.
+
+Žinomos ribos:
+
+- Debesų sesija gauna `SendMessage` žinutę, bet atsakyti atgal kol kas negali —
+  jos atsakymas matomas tik pačiame pokalbyje.
+- `bridge` (Mac) sesijos nepildo `post_turn_summary`, todėl debesų kelias jų
+  atsakymų perskaityti negali.
+- Atjungtai mašinai žinutė guli eilėje, kol ji prisijungs.
 
 ## Routine'ų tvarkymas
 
-Komanda kiekvienai sesijai laiko po vieną *poke-only* Routine ir jį pernaudoja.
-Tokie Routine'ai patys niekada nesuveikia — tik kai juos paleidžia komanda.
+Debesų kelias kiekvienai sesijai laiko po vieną *poke-only* Routine ir jį
+pernaudoja. Tokie Routine'ai patys niekada nesuveikia — tik kai juos paleidžia
+komanda.
 
 Ištrinti juos iš sesijos neįmanoma: `delete_trigger` ir `update_trigger` yra
 atmetami permission sluoksnyje (`create` ir `fire` praeina). Jei Routines
