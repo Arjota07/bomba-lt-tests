@@ -44,6 +44,24 @@ Jei nė vienas neveikia (`ListAgents` tuščias **ir** `mcp__Claude_Code_Remote_
 **Kelias A:** sąrašą duoda pats `ListAgents` — kiekviena eilutė prasideda
 sesijos vardu, kuris ir yra adresas.
 
+🔴 **`ListAgents` „started X ago" yra STARTO, ne paskutinio lietimo laikas.**
+Pagal jį `<n>d` filtro daryti negalima: 2026-08-15 `homefolder-7c` buvo rodoma
+„started 1d ago", nors iš tikrųjų aktyvi prieš 30 min.
+
+Tikrą aktyvumą gauk **nemokamu zondu** — `SendMessage` su *bare* vardu, be
+`[ref]`. Siuntimas nulūžta, sesija NEPABUNDA, turas nesunaudojamas, o klaidoje
+įrašytas paskutinis aktyvumas:
+
+```
+SendMessage  to: homefolder-74   message: probe
+→ "'homefolder-74' is not an agent in this conversation. Re-send with the ref…
+   homefolder-74 [9081f7] — Claude session, on this machine, active 12h ago"
+```
+
+Zonduok visas kandidates vienu paketu (lygiagretūs iškvietimai), iš klaidų
+susirink `active X ago` ir tik tada taikyk `<n>d` filtrą. Sesijoms, kurios
+dirba dabar, `active` eilutės nebūna — jos į `<n>d` niekada nepatenka.
+
 **Kelias B:** `mcp__Claude_Code_Remote__list_sessions` su `mine: true`,
 `limit: 100`. Atsakymas beveik visada viršija tokenų ribą ir bus įrašytas į
 failą. Neskaityk jo per `Read` — eilutės per ilgos. Filtruok per Bash:
@@ -160,9 +178,20 @@ Klausk to, ką ji gali pasakyti tiksliai: kas nebaigta ir ko laukiama.
 ## 4. Surink atsakymus
 
 **Kelias A:** atsakymai ateina kaip `<cross-session-message>` per ~10–30 s
-(idle sesijos pabunda pačios — patikrinta 2026-08-15). Jei po ~2 min atsakymo
-nėra, sesija greičiausiai atsakė paprastu tekstu — perskaityk jį iš jos
-transkripto (tik Mac'e, tik šios mašinos sesijoms):
+(idle sesijos pabunda pačios — patikrinta 2026-08-15).
+
+🔴 **`waiting` ≠ `idle`.** `idle` sesija pabunda pati; `waiting` sesija laukia
+žmogaus (leidimo dialogo ar klausimo) ir eilės **nedrenuoja** — žinutė guli, kol
+Andrius tą pokalbį atidarys. Patikrinta 2026-08-15: `homefolder-74` (`waiting`)
+po 2,5 min neatsakė, o klausimas nebuvo pasiekęs net jos transkripto. Žinutė
+neprarasta, bet savaime nesuveiks. `waiting` sesijų į apklausą **neįtrauk** —
+arba įtrauk žinodamas, kad atsakymo nebus, ir taip ir parašyk ataskaitoje.
+
+Atsakymo `from-name` yra sesijos **pavadinimas** (pvz. „Claude version update"),
+ne `ListAgents` vardas (`homefolder-7c`) — susieti tenka pagal turinį.
+
+Jei po ~2 min atsakymo nėra, sesija greičiausiai atsakė paprastu tekstu —
+perskaityk jį iš jos transkripto (tik Mac'e, tik šios mašinos sesijoms):
 
 ```bash
 grep -l "STATUSO PATIKRA (automatin" ~/.claude/projects/*/*.jsonl

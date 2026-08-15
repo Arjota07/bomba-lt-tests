@@ -85,6 +85,12 @@ nieko nelieka. Todėl `/sesijos` verta paleidinėti būtent iš Mac'o, kai tik j
   2026-08-15, transportai `uds` ir `bridge`). Neatėjus atsakymui — jį galima
   perskaityti iš sesijos transkripto `~/.claude/projects/*/*.jsonl` (žr. komandos
   4 skyrių), nesiunčiant klausimo antrą kartą.
+- **`waiting` būsenos sesija eilės nedrenuoja** — ji laukia žmogaus, tad žinutė
+  guli, kol pokalbis atidaromas (2026-08-15: `homefolder-74`, 2,5 min be atsako,
+  klausimas nepasiekė net jos transkripto). Pabunda tik `idle`.
+- **`ListAgents` rodo starto, ne paskutinio lietimo laiką**, tad `<n>d` filtrui
+  jo duomenų neužtenka. Tikrą `active X ago` grąžina `SendMessage` su bare vardu
+  (be `[ref]`) — siuntimas nulūžta, sesija nepabunda, turas nesunaudojamas.
 - Debesų sesija gauna `SendMessage` žinutę, bet atsakyti atgal kol kas negali —
   jos atsakymas matomas tik pačiame pokalbyje.
 - `bridge` (Mac) sesijos nepildo `post_turn_summary`, todėl debesų kelias jų
