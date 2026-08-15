@@ -30,6 +30,15 @@ archyvuoti.
 - Mac'o (`bridge`) sesijų atsakymų per API perskaityti neįmanoma — juos matysi tik
   atsidaręs pokalbį Mac'e. Jei Mac'as tuo metu atjungtas, žinutė lauks eilėje.
 
+## Routine'ų tvarkymas
+
+Komanda kiekvienai sesijai laiko po vieną *poke-only* Routine ir jį pernaudoja.
+Tokie Routine'ai patys niekada nesuveikia — tik kai juos paleidžia komanda.
+
+Ištrinti juos iš sesijos neįmanoma: `delete_trigger` ir `update_trigger` yra
+atmetami permission sluoksnyje (`create` ir `fire` praeina). Jei Routines
+sąrašas per ilgas, valyk ranka per claude.ai Routines UI.
+
 ## Automatinis paleidimas
 
 Komandą galima pakabinti ant Routine, kad suveiktų pati. Pavyzdžiui kas rytą

@@ -49,10 +49,21 @@ Tiesioginio „broadcast" API nėra ir `SendMessage` šių sesijų nepasiekia
 Vienintelis veikiantis kelias — *poke-only* Routine, pririštas prie sesijos ID.
 
 Routine'us **pernaudok, nekurk kiekvieną kartą iš naujo**. Pirma iškviesk
-`list_triggers` ir ieškok pavadinimo `sesijos-check:<session_id>`:
+`list_triggers` ir ieškok jau esančio šiai sesijai pagal **abu** pavadinimų
+formatus:
 
-- **radai** → iškart `fire_trigger` su tuo ID
+- `sesijos-check:<session_id>` — dabartinis formatas
+- `Statuso patikra — <sesijos pavadinimas>` — pirmoji, rankomis kurta karta
+  (2026-08-15); tokių yra 10 ir jie veikia lygiai taip pat
+
+Tada:
+
+- **radai** (bet kuriuo formatu) → iškart `fire_trigger` su tuo ID
 - **neradai** → `create_trigger` (žemiau), tada `fire_trigger`
+
+Senųjų nepervadink ir netrink — `update_trigger` ir `delete_trigger` šioje
+aplinkoje atmetami permission sluoksnyje. Jei vartotojas nori tvarkos Routines
+sąraše, tai daroma ranka per claude.ai Routines UI.
 
 `create_trigger` parametrai:
 
