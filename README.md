@@ -170,6 +170,33 @@ This project is consumed by the `e2e-orchestrator` skill:
 → Generates report at /tmp/e2e-report-bomba-*.md
 ```
 
+## Monitor alert dedup (`run-monitor.sh`)
+
+Lokalus launchd monitorius anksčiau siųsdavo DRIFT laišką **kiekvieną** paleidimą — nuolat krentantis suite'as reiškė tą patį laišką kas savaitę. Dabar veikia fingerprint dedup (idėja iš [rutvej/DAA](https://github.com/rutvej/DAA) `app/common/fingerprint.py`, MIT):
+
+1. Iš kritusių suite'ų log'ų ištraukiami test-level gedimai (Playwright `line` reporter'io `1) ...` eilutės).
+2. Normalizuojama: nupjaunamos ANSI spalvos, numeracija, dekoratyvinis `───` padas ir `:eilutė:stulpelis` — kad spec'o redagavimas nelaikytų seno gedimo nauju.
+3. SHA-256 → 16 simbolių atspaudas.
+
+| Situacija | El. laiškas |
+|---|---|
+| Naujas arba pasikeitęs atspaudas | ✅ siunčiamas iškart |
+| Tas pats atspaudas, cooldown nepasibaigęs | ⏸️ tylima |
+| Tas pats atspaudas, cooldown pasibaigė | ✅ siunčiamas (priminimas) |
+| Visi suite'ai PASS | state išvalomas → kitas gedimas vėl „naujas" |
+
+macOS notification'o dedup **neliečia** — lokalus toast'as rodomas kas paleidimą.
+
+**Kontrolė:**
+
+```bash
+E2E_DEDUP_COOLDOWN_H=24 bash run-monitor.sh   # cooldown valandomis (default 168 = 7 d.)
+E2E_NO_DEDUP=1 bash run-monitor.sh            # priverstinai siųsti
+E2E_NO_EMAIL=1 bash run-monitor.sh            # dry-run (state nekeičiamas)
+```
+
+State: `<Dropbox>/BOMBA.LT/e2e-monitor-results/.failure-fingerprint` (formatas `<atspaudas> <epoch> <run-TS>`). Guli šalia, o ne per-run kataloge, todėl išgyvena 30-dienų cleanup'ą. Cooldown laikrodis atnaujinamas **tik faktiškai išsiuntus** laišką — kitaip nuolat krentantis testas laikrodį nuolat stumtų ir priminimas nebeateitų niekada. Atspaudas ir signature įrašomi į `summary.txt`.
+
 ## Žinomi limitations
 
 - **Cookie consent** — auto-accept'inamas fixtų atveju. Jei dizainas keičiasi — `storage.ts:13` selectoras gali sulūžti.
