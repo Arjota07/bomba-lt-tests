@@ -95,7 +95,11 @@ nieko nelieka. Todėl `/sesijos` verta paleidinėti būtent iš Mac'o, kai tik j
   jos atsakymas matomas tik pačiame pokalbyje.
 - `bridge` (Mac) sesijos nepildo `post_turn_summary`, todėl debesų kelias jų
   atsakymų perskaityti negali.
-- Atjungtai mašinai žinutė guli eilėje, kol ji prisijungs.
+- **`disconnected` sesija gali nebeatsigauti niekada** — miršta atskiros sesijos
+  procesas, ne visas Remote Control, tad mašinos prisijungimas jos neišjudina
+  (2026-08-15: 7 sesijos su 06:42 žinute liko negyvos ir po 6 val., kai kitos to
+  paties Mac'o sesijos jau dirbo). Požymis — `updated_at`, sustingęs ties žinutės
+  įmetimo laiku. Išjudinti galima tik iš tos mašinos.
 
 ## Routine'ų tvarkymas
 

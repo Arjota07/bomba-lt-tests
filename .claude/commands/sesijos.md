@@ -129,6 +129,15 @@ Tada:
 - **radai** (bet kuriuo formatu) → iškart `fire_trigger` su tuo ID
 - **neradai** → `create_trigger`, tada `fire_trigger`
 
+🔴 **Neįmesk antros žinutės sesijai, kuri dar neatsakė į pirmą.** Jei sesijos
+`updated_at` sutampa su ankstesnio apėjimo laiku ir `connection_status` yra
+`disconnected`, pirmoji žinutė tebeguli eilėje. Antra jos nepagreitins — tik
+prisidės, ir kai (jei) sesija pabus, atsakys dukart. Praleisk ją ir pažymėk
+ataskaitoje kaip įstrigusią (žr. 4 skyrių).
+
+Taip pat: `create_trigger` nulūžta su `session not active`, jei sesija tuo tarpu
+buvo archyvuota. Tai normalu tarp dviejų apėjimų — praleisk ją ir eik toliau.
+
 `create_trigger` parametrai:
 
 - `name`: `sesijos-check:<session_id>`
@@ -213,8 +222,17 @@ dar vienas turas tai sesijai.
 jų atsakymus vartotojas matys tik atsidaręs pokalbį. Pasakyk tai atvirai,
 neapsimesk, kad atsakymo nėra.
 
-Jei `connection_status` yra `disconnected`, žinutė guli eilėje ir suveiks tik
-tada, kai ta mašina prisijungs. Tai ne klaida — tiesiog pranešk.
+🔴 **`disconnected` sesija gali nebeatsigauti niekada.** Ankstesnė šio failo
+redakcija tvirtino, kad žinutė suveiks, „kai ta mašina prisijungs" — netiesa.
+Miršta atskiros sesijos procesas, ne visas Remote Control. Patikrinta
+2026-08-15: 7 sesijos su 06:42 žinute liko `disconnected` ir po 6 valandų, kai
+keturios kitos to paties Mac'o sesijos jau seniai buvo `connected` ir dirbo.
+
+Požymis: `updated_at` sustingęs ties tuo laiku, kada įmetei žinutę.
+
+Tokias vadink **įstrigusiomis** ir ataskaitoje rašyk atvirai, kad atsakymo
+greičiausiai nebus. Išjudinti galima tik iš tos mašinos — atidarius pokalbį
+ranka arba paleidus `/sesijos` Mac'e (kelias A). Iš debesų sesijos — niekaip.
 
 ---
 
@@ -228,4 +246,6 @@ Markdown lentelė, surūšiuota: pirma `need_input`, paskui `review_ready`.
 Po lentelės atskirai išvardink:
 
 - sesijas, kurios atsakė „galima archyvuoti" → pasiūlyk `archive_session`
-- sesijas, kurios dar neatsakė → nurodyk, ko jos laukia (prisijungimo ar turo)
+- sesijas, kurios dar neatsakė → nurodyk, ko jos laukia (turo ar žmogaus)
+- **įstrigusias** (`disconnected` + sustingęs `updated_at`) → atskira eilute, su
+  pastaba, kad atsakymo greičiausiai nebus ir spręsti reikia iš Mac'o
