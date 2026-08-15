@@ -31,16 +31,32 @@ Debesų sesijose komanda atsiranda pati, nes jos startuoja šiame repo. Mac'e ta
 nebus — ten dirbi kituose kataloguose. Sprendimas: symlink į naudotojo lygio
 komandų katalogą, kuris galioja **visuose** projektuose.
 
+**Po to, kai PR sumergintas į `master`** — symlink, kad `git pull` atnaujintų ir
+komandą:
+
 ```bash
 mkdir -p ~/.claude/commands
 cd ~/Projektai/bomba.lt-tests && git pull
 ln -sf ~/Projektai/bomba.lt-tests/.claude/commands/sesijos.md ~/.claude/commands/sesijos.md
 ```
 
-Symlink, o ne kopija — taip `git pull` iškart atnaujina ir komandą, nereikia
-prisiminti perkopijuoti. Patikrink repo kelią: README nurodo
-`~/Projektai/bomba.lt-tests` (katalogas su tašku, nors repo slug yra
-`bomba-lt-tests`).
+**Kol PR dar neatidarytas/nesumergintas** — symlink rodytų į neegzistuojantį
+failą, nes `master` jo dar neturi. Tada imk failą tiesiai iš šakos, neliečiant
+darbinio katalogo:
+
+```bash
+mkdir -p ~/.claude/commands
+cd ~/Projektai/bomba.lt-tests
+git fetch origin claude/active-sessions-questions-2br5uk
+git show origin/claude/active-sessions-questions-2br5uk:.claude/commands/sesijos.md \
+  > ~/.claude/commands/sesijos.md
+```
+
+`git show` tik nuskaito failą iš šakos — nekeičia nei checkout'o, nei darbinio
+katalogo, tad nepertrauks to, ką tuo metu darai repo.
+
+Patikrink repo kelią: README nurodo `~/Projektai/bomba.lt-tests` (katalogas su
+tašku, nors repo slug yra `bomba-lt-tests`).
 
 Po to bet kuriame Mac'o projekte veikia `/sesijos`.
 
