@@ -9,6 +9,17 @@ import { test, expect } from '../../fixtures/storage';
  * Update baseline (po legitimaus dizaino keitimo):
  *   npm run test:update-snapshots
  *
+ * 🔴 2026-08-15 baseline'ų FORMATAS: `.png` → `.webp` (Playwright 1.62 palaiko
+ * WebP snapshot'us — formatą lemia failo plėtinys `toHaveScreenshot()` argumente,
+ * globalaus config option'o nėra). WebP čia LOSSLESS (quality 100 = default),
+ * t. y. pikselis į pikselį toks pat kaip PNG, tik ~2-3× mažesnis repo'e —
+ * full-page baseline'ai buvo ~1.6 MB ir augo su kiekvienu refresh'u.
+ * Kartu su 1.62 atėjo Chromium 151 / WebKit 26.5, tad SENIEJI PNG baseline'ai
+ * vis tiek buvo negaliojantys (kitas rendering'as) — jie ištrinti, o nauji
+ * generuojami įprasta tvarka: workflow_dispatch → qa_suite=visual → artifact
+ * `visual-snapshots-linux` → commit. Mac (`-darwin`) baseline'ai — lokaliai
+ * su `npm run test:update-snapshots`.
+ *
  * 🔴 2026-07-31 baseline'ai PERDARYTI. Senieji buvo iš 2026-05-24 ir jau nebeatitiko:
  * full-page aukštis 3840 → 5915 px (svetainė paaugo per 2 mėn.), diff 22 % ⇒ suite
  * krito kiekvieną kartą ir jokios realios regresijos nebūtų parodęs.
@@ -62,7 +73,7 @@ test.describe('Visual regression: Homepage', () => {
   });
 
   test('homepage above-the-fold', async ({ guestPage }) => {
-    await expect(guestPage).toHaveScreenshot('homepage-atf.png', {
+    await expect(guestPage).toHaveScreenshot('homepage-atf.webp', {
       fullPage: false,
       maxDiffPixelRatio: 0.02,
       // Mask dynamic content (carousel, timestamps, ads)
@@ -86,7 +97,7 @@ test.describe('Visual regression: Homepage', () => {
         });
       });
     });
-    await expect(guestPage).toHaveScreenshot('homepage-full.png', {
+    await expect(guestPage).toHaveScreenshot('homepage-full.webp', {
       fullPage: true,
       maxDiffPixelRatio: 0.05, // 5% tolerance (was 3% — carousel residual jitter)
       // 🔴 2026-07-31 (v2): produktų grid'ai (Naujienos / Ką tik gauta / Perkamiausi),
