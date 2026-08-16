@@ -32,6 +32,22 @@ commitinti, ne symlink'ai), versijos fiksuotos `skills-lock.json`.
 | `codebase-design` | mattpocock/skills | **Priklausomybė** — improve-codebase-architecture žodynas |
 | `git-guardrails-claude-code` | mattpocock/skills | Saugikliai git operacijoms agentinėse sesijose |
 
+## Papildymas — 3 banga: ~11–100 zona (2026-08-16)
+
+| Skill | Šaltinis | Kam čia reikalingas |
+|---|---|---|
+| `wait-what` | mattpocock/skills | „Kas čia įvyko?" santrauka po ilgos agentų sesijos |
+| `remembering-conversations` | obra/episodic-memory | Praeitų pokalbių paieška (⚠️ pilnam veikimui lokalioje mašinoje reikia `episodic-memory` plugin'o su MCP) |
+| `writing-guidelines` | vercel-labs/agent-skills | Docs/prose stiliaus auditas |
+| `setup-pre-commit` | mattpocock/skills | Husky pre-commit hook'ai šiam repo |
+| `writing-for-agents` | mattpocock/skills | Savų skill'ų / CLAUDE.md rašymo taisyklės |
+| `prototype` | mattpocock/skills | Izoliuoti throwaway eksperimentai (workflow §5) |
+| `implement` | mattpocock/skills | Užbaigia grandinę to-spec → to-tickets → implement |
+| `resolving-merge-conflicts` | mattpocock/skills | Merge/rebase konfliktai tarp kelių sesijų |
+| `dispatching-parallel-agents` | obra/superpowers | Lygiagretūs subagentai nepriklausomoms užduotims |
+
+Iš 26–100 zonos sąmoningai praleista: `convex-backend`, `emil-kowalski-design`, `ui-ux-pro-max`, React/Next/TS-specifiniai (be React), `deploy-to-vercel`, `planning-with-files` (dubliuoja WORK_STATE), superpowers plan-discipline rinkinys (dengia imuzika-workflow), `using-git-worktrees` (built-in worktree), `teach`/`scaffold-exercises` (mokymui).
+
 ## Diegimas visur (kitose mašinose / projektuose)
 
 Šiame repo skill'ai commitinti (`.claude/skills/`) — kiekviena sesija juos gauna automatiškai.
