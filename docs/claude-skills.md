@@ -17,6 +17,30 @@ commitinti, ne symlink'ai), versijos fiksuotos `skills-lock.json`.
 | `grilling` | mattpocock/skills | **Priklausomybė** — grill-me/grill-with-docs/triage variklis |
 | `domain-modeling` | mattpocock/skills | **Priklausomybė** — reikalinga grill-with-docs |
 
+## Papildymas — 2 banga (2026-08-16)
+
+| Skill | Šaltinis | Kam čia reikalingas |
+|---|---|---|
+| `webapp-testing` | anthropics/skills | Oficialus web-app testavimo toolkit'as (Playwright) |
+| `systematic-debugging` | obra/superpowers | Sisteminis raudonų testų / lūžtančių integracijų debug |
+| `verification-before-completion` | obra/superpowers | „Ar tikrai baigta?" patikra prieš uždarant darbą |
+| `brainstorming` | obra/superpowers | Variantų generavimas prieš grill'inimą |
+| `web-design-guidelines` | vercel-labs/agent-skills | UI/UX/a11y audito taisyklės frontend tikrinimui |
+| `research` | mattpocock/skills | Gilus tyrimas prieš API integracijas |
+| `to-spec` / `to-tickets` | mattpocock/skills | Grill → spec → agent-ready tiketai (maitina `triage`) |
+| `improve-codebase-architecture` | mattpocock/skills | Struktūros tvarkymas augant repo |
+| `codebase-design` | mattpocock/skills | **Priklausomybė** — improve-codebase-architecture žodynas |
+| `git-guardrails-claude-code` | mattpocock/skills | Saugikliai git operacijoms agentinėse sesijose |
+
+## Diegimas visur (kitose mašinose / projektuose)
+
+Šiame repo skill'ai commitinti (`.claude/skills/`) — kiekviena sesija juos gauna automatiškai.
+Kad tas pats rinkinys veiktų **visuose** projektuose tavo mašinoje — paleisk vieną kartą:
+
+```bash
+bash scripts/install-skills-global.sh
+```
+
 ## Sąmoningai praleista iš topo
 
 - **Handoff** — dubliuotų iMuzika workflow checkpoint/WORK_STATE.md sistemą.
