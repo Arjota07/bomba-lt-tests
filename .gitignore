@@ -16,3 +16,7 @@ allure-report/
 
 # CodeGraph local index
 .codegraph/
+
+# Claude darbo atmintis (lokali, ne repo dalis)
+WORK_STATE.md
+HANDOFF.md
