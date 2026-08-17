@@ -84,7 +84,7 @@ for (const katalogas of KATALOGAI) {
   }
 }
 
-irasai.sort((a, b) => a.sritis.localeCompare(a.sritis) || a.kelias.localeCompare(b.kelias));
+irasai.sort((a, b) => a.sritis.localeCompare(b.sritis) || a.kelias.localeCompare(b.kelias));
 
 const pagalSriti = new Map();
 for (const irasas of irasai) {

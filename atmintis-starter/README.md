@@ -6,15 +6,21 @@ generatorius, hook'ai, šablonai ir kombainų promptai.
 Kodėl jis guli **čia**, o ne savo repo: šiai sesijai naujų GitHub repo kurti
 neleista. Karkasas paruoštas taip, kad perkėlimas būtų vienas `cp -r`.
 
-Pagrindimas ir analizė — [`docs/petriuko-atmintis-planas.md`](../docs/petriuko-atmintis-planas.md).
+Pagrindimas ir analizė — [`docs/petriuko-atmintis-planas.md`](https://github.com/Arjota07/bomba-lt-tests/blob/master/docs/petriuko-atmintis-planas.md)
+(nuoroda pilna, o ne santykinė, nes po `cp -r` į kitą repo santykinė lūžtų).
 
 ## Perkėlimas į naują repo
 
 ```bash
-# 1. Naujas privatus repo GitHub'e: petriuko-atmintis
+# 1. Naujas PRIVATUS repo (be --private nedaryk — čia eis tiekėjų kainodara
+#    ir apskaitos struktūra)
+gh repo create Arjota07/petriuko-atmintis --private
+#    Neturint gh — sukurk per github.com, pažymėjęs „Private", be README.
 
-# 2. Karkasas iš čia
-git -C ~/Projektai/bomba.lt-tests pull
+# 2. Karkasas iš čia. DĖMESIO: jis kol kas gyvena šakoje, ne master'yje.
+cd ~/Projektai/bomba.lt-tests
+git fetch origin claude/petriuko-atmintis-asistentui-u2n1jx
+git checkout claude/petriuko-atmintis-asistentui-u2n1jx
 mkdir -p ~/Projektai/petriuko-atmintis
 cp -r ~/Projektai/bomba.lt-tests/atmintis-starter/. ~/Projektai/petriuko-atmintis/
 cd ~/Projektai/petriuko-atmintis
@@ -24,17 +30,24 @@ mkdir -p .github/workflows
 mv github/atmintis.yml .github/workflows/atmintis.yml
 rmdir github
 
-# 4. Hook'ai ir pirmas patikrinimas
+# 4. Į git (git init PRIEŠ npm run hooks — hooks rašo į git konfigą)
+git init -b main
 npm run hooks
+
+# 5. Pirmas patikrinimas
+npm test
 npm run tikrinti
 npm run indeksas
 
-# 5. Į git
-git init && git add -A
+# 6. Pirmas commitas
+git add -A
 git commit -m "Petriuko atmintis: pradinis karkasas"
 git remote add origin git@github.com:Arjota07/petriuko-atmintis.git
 git push -u origin main
 ```
+
+Toliau — [`routines/MIGRACIJA.md`](routines/MIGRACIJA.md): promptas Mac'o sesijai,
+kuri išskaido senąjį `MASTER_MEMORY.md` į sritis.
 
 ## Kasdienis naudojimas
 
