@@ -54,7 +54,7 @@ kuri išskaido senąjį `MASTER_MEMORY.md` į sritis.
 ```bash
 npm run tikrinti     # linteris: secrets, pasenę, per ilgi, dublikatai, nuorodos
 npm run indeksas     # perrašo INDEX.md iš frontmatter
-npm test             # 19 linterio testų — ar jis dar gaudo tai, ką turi
+npm test             # 37 linterio testų — ar jis dar gaudo tai, ką turi
 ```
 
 Pre-commit hook abu paleidžia automatiškai, o pasenusį `INDEX.md` atnaujina ir
@@ -107,7 +107,7 @@ režimą, kad pasenęs faktas neblokuotų nesusijusio commito.
 ```
 scripts/lint.mjs        linteris (be priklausomybių)
 scripts/index.mjs       INDEX.md generatorius
-scripts/test.mjs        linterio testai — 19 atvejų
+scripts/test.mjs        linterio testai — 37 atvejai
 sritys/                 žinios pagal sritis — GAIRES.md sako, kas kur
 sprendimai/             ADR: kodėl nusprendėm taip
 faktai/                 atskiri atomai, netelpantys į sritį

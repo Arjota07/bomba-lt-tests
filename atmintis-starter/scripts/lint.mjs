@@ -47,6 +47,11 @@ const MAX_EILUCIU = 200;
 const MIN_DUBLIKATO_ILGIS = 60;
 const TIKRUMO_REIKSMES = ['patvirtinta', 'juodrastis', 'spejimas'];
 
+/** Laukai, kuriems frontmatter'yje leidžiama bet kokia reikšmė. */
+const ZINOMI_LAUKAI = new Set([
+  'sritis', 'atnaujinta', 'galioja-iki', 'saltinis', 'tikrumas', 'zymes', 'zymos', 'autorius',
+]);
+
 const REKOMENDUOJAMA_TRUKME = {
   buhalterija: '12 mėn.',
   tiekejai: '3 mėn.',
@@ -72,21 +77,32 @@ const SECRET_SABLONAI = [
  * Raktažodis + reikšmė toje pačioje eilutėje (`slaptažodis: xyz`).
  * Sąrašas apima lietuviškus linksnius ir dažniausias kitakalbes formas.
  */
-const RAKTAZODZIO_SABLONAS = new RegExp(
-  '\\b(' +
-    [
-      'slapta[žz]od(?:is|[žz]io|[žz]iai|[žz]i[ųu])',
-      'password', 'passwd', 'pass', 'pwd', 'pw',
-      'secret', 'api[_-]?key', 'apikey', 'access[_-]?token', 'auth[_-]?token',
-      'tenant[_-]?key', 'client[_-]?secret', 'private[_-]?key', 'raktas', 'token',
-      'kennwort', 'haslo', 'parol',
-    ].join('|') +
-    ')\\b\\s*[:=]\\s*(\\S+)',
+const RAKTAZODZIAI = [
+  'slapta[žz]od\\w*',
+  'password', 'passwd', 'pass', 'pwd', 'pw',
+  'secret', 'api[_-]?key', 'apikey', 'access[_-]?token', 'auth[_-]?token',
+  'tenant[_-]?key', 'client[_-]?secret', 'private[_-]?key', 'raktas', 'token',
+  'prieig\\w*', 'kredencial\\w*',
+  'kennwort', 'haslo', 'parol',
+];
+
+/**
+ * Reikšme laikomas VISAS likutis po `:`/`=`, ne pirmas `\S+`. Su `\S+`
+ * markdown paryškinimas `**Slaptažodis:** X` grąžindavo reikšmę „**",
+ * kuri atrodė kaip nuoroda, ir tikras slaptažodis praeidavo.
+ */
+const RAKTAZODZIO_SABLONAS = new RegExp(`\\b(${RAKTAZODZIAI.join('|')})\\b\\s*[:=]\\s*(.*)$`, 'i');
+
+/** Ta pati aibė be reikšmės — eilutė, kuri tik skelbia raktažodį (daugiaeilis formatas). */
+const TIK_RAKTAZODIS = new RegExp(`\\b(${RAKTAZODZIAI.join('|')})\\b\\s*[:=]\\s*$`, 'i');
+
+const PRISIJUNGIMO_KONTEKSTAS = new RegExp(
+  '(\\badmin\\w*|\\blogin\\b|prisijungim\\w*|vartotoj\\w*|paskyr\\w*|\\baccount\\b|\\bsmtp\\b|\\bftp\\b' +
+    '|\\bssh\\b|directadmin|phpmyadmin|\\bdb\\b|duomen[ųu] baz\\w*|credential\\w*|' +
+    RAKTAZODZIAI.join('|') +
+    ')',
   'i',
 );
-
-const PRISIJUNGIMO_KONTEKSTAS =
-  /(\badmin\w*|\blogin\b|prisijungim\w*|vartotoj\w*|paskyr\w*|\baccount\b|\bsmtp\b|\bftp\b|\bssh\b|directadmin|phpmyadmin|\bdb\b|duomen[ųu] baz\w*|credential\w*)/i;
 
 /** Reikšmė, atrodanti kaip slaptažodis: 8–40 simbolių, mažoji + didžioji + skaitmuo. */
 const SLAPTAZODZIO_FORMA =
@@ -123,10 +139,19 @@ function svarusZodis(gabalas) {
   return gabalas.replace(/^[('"`*\[\u201e\u201c]+/, '').replace(/[)'"`*\],.;:!?\u201c]+$/, '');
 }
 
-/** Ar REIKŠMĖ (ne eilutė!) yra nuoroda į saugyklą arba vietaženklis. */
+/** Markdown paryškinimas nuimamas PRIEŠ analizę — kitaip `**X:**` iškreipia reikšmę. */
+function beParyskinimo(eilute) {
+  return eilute.replace(/[*`]+/g, '');
+}
+
+/**
+ * Ar REIKŠMĖ (ne eilutė!) yra nuoroda į saugyklą arba vietaženklis.
+ * Tuščia reikšmė NĖRA nuoroda — anksčiau grąžinus čia `true`, viskas, kas po
+ * valymo tapdavo tuščia, būdavo palaikoma saugiu dalyku.
+ */
 function yraNuoroda(reiksme) {
   const svarus = svarusZodis(String(reiksme));
-  if (svarus === '') return true;
+  if (svarus === '') return false;
   return NUORODOS_ZYMES.some((r) => r.test(svarus));
 }
 
@@ -253,10 +278,15 @@ function tikrintiLenteles(failas, eilutes) {
     }
     if (NUTILDYMAS.test(eilute)) return;
 
+    // Perkelta lentelė: raktažodis ne antraštėje, o pirmame eilutės langelyje
+    // (`| Slaptažodis | reikšmė |`). Būtent taip prieigos ir surašomos.
+    const raktoEilute = celes.length > 1 && KREDENCIALO_STULPELIS.test(celes[0]);
+
     celes.forEach((cele, stulpelis) => {
       const reiksme = svarusZodis(cele);
       if (!reiksme) return;
-      const kredencialoStulpelis = stulpeliai[stulpelis];
+      if (raktoEilute && stulpelis === 0) return;
+      const kredencialoStulpelis = stulpeliai[stulpelis] || raktoEilute;
       if (!kredencialoStulpelis && !kontekstas) return;
       if (yraNuoroda(reiksme)) return;
       if (NE_SLAPTAZODIS.some((r) => r.test(reiksme))) return;
@@ -275,34 +305,73 @@ function tikrintiLenteles(failas, eilutes) {
   });
 }
 
+/** Pirmoji netuščia eilutė po `i` — daugiaeiliam `slaptažodis:` formatui. */
+function kitaNetuscia(eilutes, i) {
+  for (let j = i + 1; j < Math.min(i + 4, eilutes.length); j++) {
+    const tekstas = beParyskinimo(eilutes[j]).trim();
+    if (tekstas === '') continue;
+    return { tekstas, eilute: j + 1 };
+  }
+  return null;
+}
+
+function arKredencialas(eilute, reiksme) {
+  if (!SLAPTAZODZIO_FORMA.test(reiksme)) return false;
+  if (NE_SLAPTAZODIS.some((r) => r.test(reiksme))) return false;
+  if (yraShaKontekste(eilute, reiksme)) return false;
+  return !yraNuoroda(reiksme);
+}
+
 function tikrintiSecrets(failas, eilutes) {
   eilutes.forEach((eilute, i) => {
     if (NUTILDYMAS.test(eilute)) return;
+    const svari = beParyskinimo(eilute);
     let rasta = false;
 
     for (const [kodas, regex, paaiskinimas] of SECRET_SABLONAI) {
       const m = eilute.match(regex);
       if (!m) continue;
-      if (yraNuoroda(m[1])) continue; // dokumentacijos vietaženklis, ne paslaptis
+      const reiksme = svarusZodis(m[1] || '');
+      if (reiksme === '') continue; // raktažodis paminėtas be reikšmės (proza apie taisyklę)
+      if (yraNuoroda(reiksme)) continue; // dokumentacijos vietaženklis, ne paslaptis
       pridėti('klaida', `SECRET/${kodas}`, failas, i + 1, `${paaiskinimas} — atmintyje leidžiama tik nuoroda į saugyklą`);
       rasta = true;
     }
 
-    const m = eilute.match(RAKTAZODZIO_SABLONAS);
-    if (m && !yraNuoroda(m[2])) {
-      pridėti(
-        'klaida',
-        'SECRET/reiksme',
-        failas,
-        i + 1,
-        `„${m[1]}" su reikšme — vietoj jos rašyk nuorodą (pvz. „1Password įrašas \`vardas\`")`,
-      );
-      rasta = true;
+    const m = svari.match(RAKTAZODZIO_SABLONAS);
+    if (m) {
+      const pirmas = (m[2] || '').trim().split(/\s+/)[0] || '';
+      if (pirmas !== '' && !yraNuoroda(pirmas)) {
+        pridėti(
+          'klaida',
+          'SECRET/reiksme',
+          failas,
+          i + 1,
+          `„${m[1]}" su reikšme — vietoj jos rašyk nuorodą (pvz. „1Password įrašas \`vardas\`")`,
+        );
+        rasta = true;
+      }
+    }
+
+    // `slaptažodis:` be reikšmės — reikšmė gali būti kitoje eilutėje.
+    if (!rasta && TIK_RAKTAZODIS.test(svari)) {
+      const kita = kitaNetuscia(eilutes, i);
+      const reiksme = kita ? svarusZodis(kita.tekstas.split(/\s+/)[0] || '') : '';
+      if (kita && arKredencialas(kita.tekstas, reiksme)) {
+        pridėti(
+          'klaida',
+          'SECRET/daugiaeilis',
+          failas,
+          kita.eilute,
+          `reikšmė po raktažodžio ${i + 1} eilutėje — \`${reiksme}\` atrodo kaip kredencialas`,
+        );
+        rasta = true;
+      }
     }
 
     if (rasta || !PRISIJUNGIMO_KONTEKSTAS.test(eilute)) return;
 
-    for (const gabalas of eilute.split(/[\s`|]+/)) {
+    for (const gabalas of svari.split(/[\s|]+/)) {
       const reiksme = svarusZodis(gabalas);
       if (!SLAPTAZODZIO_FORMA.test(reiksme)) continue;
       if (NE_SLAPTAZODIS.some((r) => r.test(reiksme))) continue;
@@ -327,6 +396,20 @@ function tikrintiFrontmatter(failas, tekstas, santykinis) {
     pridėti('klaida', 'FM/nera', failas, 1, 'nėra frontmatter bloko — atmintis be metaduomenų nepatikrinama');
     return;
   }
+  // Nežinomo vardo laukas su slaptažodžio formos reikšme — `prieiga: Xk7mQz9W`
+  // praeidavo pro visas taisykles vien todėl, kad jo vardo nėra žodyne.
+  for (const [laukas, reiksme] of Object.entries(laukai)) {
+    if (ZINOMI_LAUKAI.has(laukas)) continue;
+    if (!arKredencialas(`${laukas}: ${reiksme}`, svarusZodis(reiksme))) continue;
+    pridėti(
+      'klaida',
+      'SECRET/frontmatter',
+      failas,
+      1,
+      `frontmatter laukas \`${laukas}\` turi reikšmę, atrodančią kaip kredencialas`,
+    );
+  }
+
   const archyve = santykinis.startsWith('archyvas/');
   const inbox = santykinis.startsWith('inbox/');
 

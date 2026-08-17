@@ -84,6 +84,26 @@ const ATVEJAI = [
     { laukiami: ['SECRET/be-raktazodzio'], blokuoja: true },
   ],
   [
+    'APĖJIMAS: perkelta lentelė (raktažodis pirmame langelyje, ne antraštėje)',
+    A(`${FM()}# A\n\n| Laukas | Reiksme |\n|---|---|\n| Hostas | srv12.hostas.lt |\n| Slaptazodis | Bomba2026Vinilas |\n`),
+    { laukiami: ['SECRET/lentele'], blokuoja: true },
+  ],
+  [
+    'APĖJIMAS: markdown paryškinimas `**Slaptažodis:** X`',
+    A(`${FM()}# A\n**Slaptažodis:** Tikras2026Aa\n`),
+    { laukiami: ['SECRET/reiksme'], blokuoja: true },
+  ],
+  [
+    'APĖJIMAS: reikšmė kitoje eilutėje po `slaptažodis:`',
+    A(`${FM()}# A\nDirectAdmin slaptažodis:\n\nTikras2026Aa\n`),
+    { laukiami: ['SECRET/daugiaeilis'], blokuoja: true },
+  ],
+  [
+    'APĖJIMAS: nežinomo vardo frontmatter laukas',
+    A(`${FM({ prieiga: 'Bomba2026Vinilas' })}# A\ntekstas\n`),
+    { laukiami: ['SECRET/frontmatter'], blokuoja: true },
+  ],
+  [
     'kredencialas be raktažodžio dabar BLOKUOJA, ne įspėja',
     A(`${FM()}# A\n**Admin:** \`https://x.lt/admin/login\` / \`naudotojas\` / \`Admin2026!\`\n`),
     { laukiami: ['SECRET/be-raktazodzio'], blokuoja: true },
@@ -113,8 +133,16 @@ const ATVEJAI = [
   ],
   [
     'proza apie slaptažodžių taisyklę nėra kredencialas',
-    A(`${FM()}# A\nLinteris blokuoja commitą radęs \`slaptažodis: reikšmė\` ar \`password: value\`.\n`),
-    { nelaukiami: ['SECRET/reiksme'], blokuoja: false },
+    A(
+      `${FM()}# A\nLinteris blokuoja commitą radęs \`slaptažodis: reikšmė\`, \`sshpass -p\`, API raktus.\n` +
+        'Slaptažodžių saugykla yra 1Password.\n',
+    ),
+    { nelaukiami: ['SECRET/reiksme', 'SECRET/sshpass', 'SECRET/be-raktazodzio'], blokuoja: false },
+  ],
+  [
+    'antraštė „Slaptažodžiai:" su tekstu žemiau nėra kredencialas',
+    A(`${FM()}# A\nSlaptažodžiai:\n\n- niekada nerašomi atmintyje, tik nuoroda į saugyklą.\n`),
+    { nelaukiami: ['SECRET/daugiaeilis'], blokuoja: false },
   ],
   [
     'ERP dokumento numeris ir versija prisijungimų eilutėje praeina',
