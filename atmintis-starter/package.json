@@ -1,0 +1,15 @@
+{
+  "name": "petriuko-atmintis",
+  "version": "1.0.0",
+  "description": "Antrosios smegenys — md atmintis pagal sritis su linteriu ir generuojamu indeksu",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node scripts/test.mjs",
+    "tikrinti": "node scripts/lint.mjs",
+    "tikrinti:strict": "node scripts/lint.mjs --strict",
+    "indeksas": "node scripts/index.mjs",
+    "indeksas:check": "node scripts/index.mjs --check",
+    "hooks": "git config core.hooksPath hooks && chmod +x hooks/pre-commit"
+  }
+}

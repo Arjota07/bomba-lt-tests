@@ -1,0 +1,81 @@
+# Atminties patikra.
+#
+# DIEGIMAS: nukopijuok į petriuko-atmintis repo kaip
+#   .github/workflows/atmintis.yml
+#
+# Šiame (bomba-lt-tests) repo failas laikomas po `github/`, kad NEPASILEISTŲ —
+# GitHub Actions vykdo tik tai, kas guli `.github/workflows/`.
+
+name: Atmintis
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  schedule:
+    # Šeštadieniais 06:00 UTC — savaitinė „kas pasenę" ataskaita.
+    - cron: '0 6 * * 6'
+  workflow_dispatch:
+
+jobs:
+  linteris:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Pirma tikrinamas pats linteris: jei jis sugedęs, jo „viskas gerai"
+      # nieko nereiškia.
+      - name: Linterio testai
+        run: node scripts/test.mjs
+
+      # Klaidos blokuoja visada: trūkstamas frontmatter, per ilgi failai,
+      # lūžusios nuorodos ir — svarbiausia — kredencialai.
+      - name: Linteris
+        run: node scripts/lint.mjs
+
+      # INDEX.md yra generuojamas, todėl PR jį privalo turėti šviežią.
+      - name: INDEX.md šviežumas
+        if: github.event_name != 'schedule'
+        run: node scripts/index.mjs --check
+
+  # Savaitinė peržiūros ataskaita. Neblokuoja nieko — tik surašo, kas pasenę
+  # ir kas guli inbox/ nepatvirtinta.
+  savaites-ataskaita:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Surinkti pasenusius
+        id: ataskaita
+        run: |
+          node scripts/lint.mjs --json > /tmp/atmintis.json || true
+          node -e '
+            const r = JSON.parse(require("fs").readFileSync("/tmp/atmintis.json", "utf8"));
+            const pasene = r.ispejimai.filter(i => i.kodas === "PASENE");
+            const dubl  = r.ispejimai.filter(i => i.kodas === "DUBLIKATAS");
+            const eil = [];
+            eil.push(`Patikrinta ${r.failai} failų.`);
+            eil.push("");
+            if (pasene.length) {
+              eil.push(`## Pasenę (${pasene.length})`, "");
+              for (const p of pasene) eil.push(`- \`${p.failas}\` — ${p.zinute}`);
+              eil.push("");
+            }
+            if (dubl.length) {
+              eil.push(`## Galimi dublikatai (${dubl.length})`, "");
+              for (const d of dubl) eil.push(`- \`${d.failas}\` — ${d.zinute}`);
+              eil.push("");
+            }
+            if (!pasene.length && !dubl.length) eil.push("Atmintis švari — nieko pasenusio, dublikatų nėra.");
+            require("fs").writeFileSync("/tmp/ataskaita.md", eil.join("\n"));
+          '
+          cat /tmp/ataskaita.md >> "$GITHUB_STEP_SUMMARY"

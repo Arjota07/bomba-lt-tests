@@ -1,0 +1,33 @@
+<!-- GENERUOTA: scripts/index.mjs. Ranka neredaguoti. -->
+
+# Atminties indeksas
+
+4 įrašų · 3 sričių · 0 pasenusių · 1 laukia patvirtinimo
+
+Žymos: `✓` patvirtinta · `~` juodraštis · `?` spėjimas · **!** galiojimas baigėsi
+
+## Laukia patvirtinimo (`inbox/`)
+
+- [PAVYZDYS: kaip atrodo kombaino įrašas](inbox/2026-08-17-pavyzdys-kombaino-irasas.md) — 2026-08-17
+
+## Pagal sritis
+
+### discogs
+
+| | Įrašas | Atnaujinta | Galioja iki |
+|---|---|---|---|
+| ~ | [PAVYZDYS: kaip atrodo kombaino įrašas](inbox/2026-08-17-pavyzdys-kombaino-irasas.md) | 2026-08-17 | 2026-09-17 |
+
+### it-infra
+
+| | Įrašas | Atnaujinta | Galioja iki |
+|---|---|---|---|
+| ✓ | [Claude sesijų mechanika](sritys/it-infra/claude-sesijos.md) | 2026-08-17 | 2026-11-17 |
+
+### meta
+
+| | Įrašas | Atnaujinta | Galioja iki |
+|---|---|---|---|
+| ✓ | [Atmintis gyvena atskirame repo, ne projektų viduje](sprendimai/2026-08-17-atmintis-atskirame-repo.md) | 2026-08-17 | 2027-08-17 |
+| ✓ | [Kas gyvena kurioje srityje](sritys/GAIRES.md) | 2026-08-17 | 2027-08-17 |
+

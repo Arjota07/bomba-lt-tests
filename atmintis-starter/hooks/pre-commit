@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# Atminties pre-commit hook.
+#
+# Diegimas:
+#   cp hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+#
+# Arba visam repo iš karto:
+#   git config core.hooksPath hooks
+#
+# Apeiti galima su `git commit --no-verify`, bet secrets radiniui to daryti
+# nereikia niekada — jei kredencialas jau parašytas, jį reikia pasukti, o ne
+# prastumti pro hook'ą.
+
+set -e
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "pre-commit: node nerastas — atminties patikra praleista." >&2
+  exit 0
+fi
+
+echo "Tikrinu atmintį…"
+node scripts/lint.mjs
+
+echo "Tikrinu, ar INDEX.md šviežias…"
+if ! node scripts/index.mjs --check >/dev/null 2>&1; then
+  node scripts/index.mjs
+  git add INDEX.md
+  echo "INDEX.md atnaujintas ir įtrauktas į commitą."
+fi
