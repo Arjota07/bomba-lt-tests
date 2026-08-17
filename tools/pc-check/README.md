@@ -28,31 +28,58 @@ priimi tu.
 Repo viešas, tad skriptą galima paleisti tiesiai iš GitHub — nieko nereikia
 nešiotis USB'u į kiekvieną mašiną.
 
-**Windows** (viena eilutė PowerShell'e):
-
-```powershell
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $f = "$env:TEMP\pc-check.ps1"; Invoke-RestMethod 'https://raw.githubusercontent.com/Arjota07/bomba-lt-tests/master/tools/pc-check/pc-check.ps1' -OutFile $f; powershell -ExecutionPolicy Bypass -File $f
-```
-
-`SecurityProtocol` eilutė būtina: PS 5.1 dalyje mašinų dar bando TLS 1.0, o
-GitHub tokį atmeta — be jos gautum tik „The request was aborted: Could not
-create SSL/TLS secure channel". Argumentus dėk failo gale:
-`... -File $f -Updates`.
-
 **macOS / Linux:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Arjota07/bomba-lt-tests/master/tools/pc-check/pc-check.sh | bash
+for i in 1 2 3 4 5; do curl -fsSL https://raw.githubusercontent.com/Arjota07/bomba-lt-tests/master/tools/pc-check/pc-check.sh -o /tmp/pc-check.sh && break || sleep $((i*5)); done; [ -s /tmp/pc-check.sh ] && bash /tmp/pc-check.sh || echo 'Atsisiusti nepavyko - naudok lokalia kopija (zr. README)'
 ```
 
-Argumentai per `bash -s --`:
+**Windows** (viena eilutė PowerShell'e):
+
+```powershell
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $f = "$env:TEMP\pc-check.ps1"; foreach ($i in 1..5) { try { Invoke-RestMethod 'https://raw.githubusercontent.com/Arjota07/bomba-lt-tests/master/tools/pc-check/pc-check.ps1' -OutFile $f; break } catch { Start-Sleep -Seconds ($i * 5) } }; if ((Get-Item $f -ErrorAction SilentlyContinue).Length -gt 0) { powershell -ExecutionPolicy Bypass -File $f } else { Write-Host 'Atsisiusti nepavyko - naudok lokalia kopija (zr. README)' }
+```
+
+Argumentus dėk paleidimo gale: `bash /tmp/pc-check.sh --updates`,
+`... -File $f -Updates`.
+
+Trys detalės, kurios atrodo kaip nereikalingas dekoravimas, bet nėra:
+
+- **`SecurityProtocol`** — PS 5.1 dalyje mašinų dar bando TLS 1.0, o GitHub tokį
+  atmeta. Be šios eilelės gautum tik „The request was aborted: Could not create
+  SSL/TLS secure channel".
+- **Kartojimo ciklas** — žr. žemiau. Jis taip pat išsprendžia `--help`: failas
+  nusileidžia į diską, tad `$0` egzistuoja ir pagalba veikia (per `curl | bash`
+  konvejerį neveiktų).
+- **Failo ilgio patikra** (`[ -s ]` / `.Length -gt 0`) — senesnis `curl` po HTTP
+  klaidos palieka nulinio ilgio failą, o `bash` tuščiam failui grąžina `exit 0`.
+  Be šios patikros nepavykęs atsisiuntimas atrodytų kaip tyliai „sėkmingai"
+  įvykusi patikra be jokios išvesties. Klaidos tekstas sąmoningai be lietuviškų
+  rašmenų — įklijuota komanda nepriklauso nuo konsolės kodų lentelės.
+
+### Jei gauni HTTP 429
+
+```
+curl: (56) The requested URL returned error: 429
+```
+
+Tai **ne skripto ir ne repo problema** — `raw.githubusercontent.com` stovi už
+Fastly, kuris riboja užklausas pagal kliento IP. Ribojimas laikinas ir
+praeina savaime, todėl aukščiau esančiose komandose yra kartojimo ciklas su
+didinama pauze (5 s, 10 s, 15 s, 20 s).
+
+Jei ir po penkių bandymų neprasilenkia, naudok lokalią repo kopiją — tada
+GitHub raw visai nereikalingas:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Arjota07/bomba-lt-tests/master/tools/pc-check/pc-check.sh | bash -s -- --updates
+cd ~/Projektai/bomba-lt-tests && git pull origin master && bash tools/pc-check/pc-check.sh
 ```
 
-Vienintelis apribojimas taip paleidus — `--help` neveikia (skriptas skaito savo
-patį per `$0`, o per konvejerį jo nėra). Pati patikra veikia visa.
+Šis kelias eina per `github.com` git protokolą su tavo autentikacija, o ne per
+anoniminį Fastly, tad minėtas ribojimas jam negalioja.
+
+`codeload.github.com` tarball kaip alternatyva **netinka** — patikrinta, jis
+pats mirga `429`/`503` net kai `raw` atsako `200`.
 
 ## Paleidimas iš vietinio failo
 
