@@ -3,27 +3,40 @@
 # Atminties pre-commit hook.
 #
 # Diegimas:
-#   cp hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+#   npm run hooks          # git config core.hooksPath hooks
 #
-# Arba visam repo iš karto:
-#   git config core.hooksPath hooks
+# DĖMESIO: `core.hooksPath` yra LOKALUS repo konfigas — per `git clone` jis
+# nepersikelia. Kiekvienoje naujoje klonuotėje `npm run hooks` reikia paleisti
+# iš naujo, kitaip apsaugos nėra, o niekas apie tai nepraneša.
 #
-# Apeiti galima su `git commit --no-verify`, bet secrets radiniui to daryti
-# nereikia niekada — jei kredencialas jau parašytas, jį reikia pasukti, o ne
-# prastumti pro hook'ą.
+# Apeiti galima su `git commit --no-verify`. Secrets radiniui to daryti nereikia
+# niekada: jei kredencialas jau parašytas, jį reikia pasukti, o ne prastumti.
 
 set -e
 
 if ! command -v node >/dev/null 2>&1; then
-  echo "pre-commit: node nerastas — atminties patikra praleista." >&2
-  exit 0
+  echo "pre-commit: node nerastas PATH'e — atminties patikra NEATLIKTA." >&2
+  echo "            Commitas stabdomas: praleista patikra yra pavojingesnė" >&2
+  echo "            už neįvykusį commitą." >&2
+  echo "            Dažna priežastis — node per nvm, o commitinama iš GUI" >&2
+  echo "            kliento, kuris nvm PATH'o nemato." >&2
+  exit 1
 fi
 
-echo "Tikrinu atmintį…"
-node scripts/lint.mjs
+# Tikrinamas INDEKSAS, o ne darbinis katalogas. Skirtumas nėra teorinis: jei
+# kredencialas jau `git add`-intas, o darbiniame kataloge tu jį ką tik
+# ištrynei, darbinio katalogo patikra praeitų ir kredencialas nukeliautų į git.
+STAGED=$(mktemp -d)
+cleanup() { rm -rf "$STAGED"; }
+trap cleanup EXIT INT TERM
+
+git checkout-index -a -f --prefix="$STAGED/"
+
+echo "Tikrinu atmintį (commitinamą turinį)…"
+node scripts/lint.mjs "$STAGED"
 
 echo "Tikrinu, ar INDEX.md šviežias…"
-if ! node scripts/index.mjs --check >/dev/null 2>&1; then
+if ! node scripts/index.mjs "$STAGED" --check >/dev/null 2>&1; then
   node scripts/index.mjs
   git add INDEX.md
   echo "INDEX.md atnaujintas ir įtrauktas į commitą."

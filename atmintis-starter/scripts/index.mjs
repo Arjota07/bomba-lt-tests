@@ -13,8 +13,9 @@ import { readFileSync, writeFileSync, existsSync, statSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 
-const ROOT = resolve(process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : '.');
-const CHECK = process.argv.includes('--check');
+const argumentai = process.argv.slice(2);
+const ROOT = resolve(argumentai.find((a) => !a.startsWith('--')) ?? '.');
+const CHECK = argumentai.includes('--check');
 
 const KATALOGAI = ['sritys', 'faktai', 'sprendimai', 'inbox'];
 

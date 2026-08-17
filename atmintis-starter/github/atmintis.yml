@@ -54,28 +54,12 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Surinkti pasenusius
-        id: ataskaita
+      # Atskiras skriptas, o ne `node -e '…'`: dvidešimt eilučių JS shell'o
+      # vienguolėse kavutėse sulūžta nuo vieno apostrofo kode.
+      # Kredencialas atmintyje nudažo šį žingsnį raudonai (exit 1), o ne tik
+      # atsiranda tekste — ankstesnė versija skaitė vien įspėjimus ir rašė
+      # „Atmintis švari" net gulint atviro teksto slaptažodžiui.
+      - name: Savaitės ataskaita
         run: |
-          node scripts/lint.mjs --json > /tmp/atmintis.json || true
-          node -e '
-            const r = JSON.parse(require("fs").readFileSync("/tmp/atmintis.json", "utf8"));
-            const pasene = r.ispejimai.filter(i => i.kodas === "PASENE");
-            const dubl  = r.ispejimai.filter(i => i.kodas === "DUBLIKATAS");
-            const eil = [];
-            eil.push(`Patikrinta ${r.failai} failų.`);
-            eil.push("");
-            if (pasene.length) {
-              eil.push(`## Pasenę (${pasene.length})`, "");
-              for (const p of pasene) eil.push(`- \`${p.failas}\` — ${p.zinute}`);
-              eil.push("");
-            }
-            if (dubl.length) {
-              eil.push(`## Galimi dublikatai (${dubl.length})`, "");
-              for (const d of dubl) eil.push(`- \`${d.failas}\` — ${d.zinute}`);
-              eil.push("");
-            }
-            if (!pasene.length && !dubl.length) eil.push("Atmintis švari — nieko pasenusio, dublikatų nėra.");
-            require("fs").writeFileSync("/tmp/ataskaita.md", eil.join("\n"));
-          '
-          cat /tmp/ataskaita.md >> "$GITHUB_STEP_SUMMARY"
+          set -o pipefail   # be jo žingsnio baigtį lemtų `tee`, o ne skriptas
+          node scripts/ataskaita.mjs | tee -a "$GITHUB_STEP_SUMMARY"

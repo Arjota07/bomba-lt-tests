@@ -28,18 +28,22 @@ cd ~/Projektai/petriuko-atmintis
 # 3. GH Action į vietą (čia jis po github/, kad nepasileistų svetimame repo)
 mkdir -p .github/workflows
 mv github/atmintis.yml .github/workflows/atmintis.yml
-rmdir github
+rm -rf github   # rm, ne rmdir: Finder palieka .DS_Store
 
 # 4. Į git (git init PRIEŠ npm run hooks — hooks rašo į git konfigą)
 git init -b main
 npm run hooks
 
-# 5. Pirmas patikrinimas
+# 5. PATIKRINK, ar hook'as tikrai įsijungė — be šito 6 žingsnis rodytų žalią
+#    net tuo atveju, jei apsaugos nėra
+test "$(git config core.hooksPath)" = "hooks" && echo "hook'as veikia" || echo "HOOK'O NĖRA"
+
+# 6. Pirmas patikrinimas
 npm test
 npm run tikrinti
 npm run indeksas
 
-# 6. Pirmas commitas
+# 7. Pirmas commitas
 git add -A
 git commit -m "Petriuko atmintis: pradinis karkasas"
 git remote add origin git@github.com:Arjota07/petriuko-atmintis.git
@@ -58,7 +62,14 @@ npm test             # 37 linterio testų — ar jis dar gaudo tai, ką turi
 ```
 
 Pre-commit hook abu paleidžia automatiškai, o pasenusį `INDEX.md` atnaujina ir
-įtraukia į commitą pats.
+įtraukia į commitą pats. Jis tikrina **indeksą** (tai, kas commitinama), ne
+darbinį katalogą — kitaip jau `git add`-intas kredencialas praeitų, jei tuo metu
+darbiniame kataloge jo nebėra.
+
+> **`core.hooksPath` per `git clone` nepersikelia.** Tai lokalus repo konfigas.
+> Kiekvienoje naujoje klonuotėje — ir kiekvienoje naujoje mašinoje — reikia iš
+> naujo paleisti `npm run hooks`, kitaip apsaugos nėra ir niekas apie tai
+> nepraneša. Vienintelė patikra, kuri veikia visur, yra GitHub Action.
 
 ## Ką linteris blokuoja
 
