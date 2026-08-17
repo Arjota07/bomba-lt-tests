@@ -61,7 +61,6 @@ function pavadinimas(tekstas, kelias) {
   return m ? m[1].trim() : kelias.split('/').pop().replace(/\.md$/, '');
 }
 
-const siandien = new Date().toISOString().slice(0, 10);
 const irasai = [];
 
 for (const katalogas of KATALOGAI) {
@@ -78,7 +77,6 @@ for (const katalogas of KATALOGAI) {
       atnaujinta: fm.atnaujinta || '—',
       galiojaIki: fm['galioja-iki'] || '',
       tikrumas: fm.tikrumas || '',
-      pasene: Boolean(fm['galioja-iki']) && fm['galioja-iki'] < siandien,
       inbox: santykinis.startsWith('inbox/'),
     });
   }
@@ -92,7 +90,6 @@ for (const irasas of irasai) {
   pagalSriti.get(irasas.sritis).push(irasas);
 }
 
-const pasene = irasai.filter((i) => i.pasene);
 const laukiantys = irasai.filter((i) => i.inbox);
 
 const eilutes = [];
@@ -100,23 +97,13 @@ eilutes.push('<!-- GENERUOTA: scripts/index.mjs. Ranka neredaguoti. -->');
 eilutes.push('');
 eilutes.push('# Atminties indeksas');
 eilutes.push('');
-eilutes.push(
-  `${irasai.length} įrašų · ${pagalSriti.size} sričių · ${pasene.length} pasenusių · ${laukiantys.length} laukia patvirtinimo`,
-);
+eilutes.push(`${irasai.length} įrašų · ${pagalSriti.size} sričių · ${laukiantys.length} laukia patvirtinimo`);
 eilutes.push('');
-eilutes.push('Žymos: `✓` patvirtinta · `~` juodraštis · `?` spėjimas · **!** galiojimas baigėsi');
+eilutes.push('Žymos: `✓` patvirtinta · `~` juodraštis · `?` spėjimas');
 eilutes.push('');
-
-if (pasene.length > 0) {
-  eilutes.push('## Reikia peržiūros');
-  eilutes.push('');
-  eilutes.push('| Įrašas | Galiojo iki |');
-  eilutes.push('|---|---|');
-  for (const i of pasene.sort((a, b) => a.galiojaIki.localeCompare(b.galiojaIki))) {
-    eilutes.push(`| [${i.pavadinimas}](${i.kelias}) | ${i.galiojaIki} |`);
-  }
-  eilutes.push('');
-}
+eilutes.push('Kas pasenę — rodo `npm run tikrinti`, ne šis failas: indeksas turi priklausyti');
+eilutes.push('tik nuo failų turinio, kitaip `--check` CI\'uje imtų kristi pats savaime.');
+eilutes.push('');
 
 if (laukiantys.length > 0) {
   eilutes.push('## Laukia patvirtinimo (`inbox/`)');
@@ -136,7 +123,7 @@ for (const [sritis, sarasas] of [...pagalSriti].sort()) {
   eilutes.push('| | Įrašas | Atnaujinta | Galioja iki |');
   eilutes.push('|---|---|---|---|');
   for (const i of sarasas) {
-    const zyme = (TIKRUMO_ZYME[i.tikrumas] || '·') + (i.pasene ? ' **!**' : '');
+    const zyme = TIKRUMO_ZYME[i.tikrumas] || '·';
     eilutes.push(`| ${zyme} | [${i.pavadinimas}](${i.kelias}) | ${i.atnaujinta} | ${i.galiojaIki || '—'} |`);
   }
   eilutes.push('');
@@ -154,5 +141,5 @@ if (CHECK) {
   console.log('INDEX.md šviežias.');
 } else {
   writeFileSync(indeksoKelias, `${turinys}\n`, 'utf8');
-  console.log(`INDEX.md atnaujintas — ${irasai.length} įrašų, ${pasene.length} pasenusių.`);
+  console.log(`INDEX.md atnaujintas — ${irasai.length} įrašų.`);
 }

@@ -64,23 +64,40 @@ Pre-commit hook abu paleidžia automatiškai, o pasenusį `INDEX.md` atnaujina i
 
 | Kodas | Ką reiškia |
 |---|---|
-| `SECRET/*` | kredencialas atmintyje — vietoj reikšmės turi būti nuoroda į saugyklą |
+| `SECRET/sshpass`, `/gh-token`, `/stripe`, `/aws`, `/bearer`, `/basic-auth`, `/url-creds`, `/private-key` | atpažįstamos formos raktas ar slaptažodis |
+| `SECRET/reiksme` | raktažodis su reikšme (`slaptažodis: <reikšmė>`) |
+| `SECRET/lentele` | kredencialas markdown lentelės langelyje |
+| `SECRET/be-raktazodzio` | prisijungimų eilutėje reikšmė, atrodanti kaip slaptažodis |
 | `FM/nera`, `FM/laukas` | trūksta frontmatter arba privalomo lauko |
 | `FM/data` | bloga data arba `galioja-iki` ne vėlesnė už `atnaujinta` |
 | `FM/tikrumas` | `tikrumas` ne iš sąrašo: `patvirtinta`, `juodrastis`, `spejimas` |
 | `INBOX/tikrumas` | `inbox/` įrašas ne `juodrastis` — patvirtinimas praleistas |
-| `ILGIS` | virš 200 eilučių — laikas skelti |
+| `ILGIS` | virš 200 eilučių teksto (lentelės neskaičiuojamos) |
 | `NUORODA` | nuoroda į neegzistuojantį failą |
 
 Įspėja (neblokuoja): `PASENE` — `galioja-iki` praėjusi; `DUBLIKATAS` — tas pats
-teiginys dviejuose failuose; `GALIMAS-SECRET` — prisijungimų eilutėje yra
-reikšmė, atrodanti kaip slaptažodis.
+teiginys dviejuose failuose.
 
-`GALIMAS-SECRET` egzistuoja dėl konkretaus atvejo: `muzikosirasai/CLAUDE.md`
-eilutė `**Admin:** <url> / <vartotojas> / <slaptažodis>` neturi žodžio
-„password", todėl griežtieji šablonai jos nepagauna. Tai heuristika, ne
-garantija — ji gali ir klysti, ir praleisti. **Linteris nepakeičia to, kad
-kredencialų į atmintį tiesiog nerašai.**
+**Kredencialai ieškomi VISUOSE repo tekstiniuose failuose**, ne tik atminties
+kataloguose — slaptažodis `README.md`, `routines/` ar `.txt` faile yra lygiai
+taip pat nutekėjęs. Struktūros taisyklės (frontmatter, ilgis, nuorodos) taikomos
+tik `sritys/`, `faktai/`, `sprendimai/`, `inbox/`, `archyvas/`.
+
+Nuorodų formos praeina: `1Password`, `op://`, `${KINTAMASIS}`, `$VAR`,
+`<vietaženklis>`, `.env`. Klaidingai pažymėtą eilutę galima nutildyti komentaru
+`<!-- lint:ne-secret -->` — jis galioja tik tai eilutei ir tik kredencialų
+taisyklėms.
+
+**Linteris nepakeičia to, kad kredencialų į atmintį tiesiog nerašai.** Jis yra
+tinklas po lynu, o ne lynas.
+
+### Kodėl `SECRET/be-raktazodzio` blokuoja, o ne įspėja
+
+Pirmoje versijoje jis buvo tik įspėjimas. Kadangi nei pre-commit hook'as, nei CI
+nenaudoja `--strict`, tai reiškė, kad jis **niekada nieko neblokavo** — forma
+`**Admin:** <url> / <vartotojas> / <slaptažodis>`, dėl kurios jis ir buvo
+sukurtas, praeidavo į git tyliai. Dabar blokuoja, o klaidingiems atvejams yra
+nutildymo komentaras.
 
 `npm run tikrinti:strict` paverčia įspėjimus klaidomis. CI naudoja paprastą
 režimą, kad pasenęs faktas neblokuotų nesusijusio commito.

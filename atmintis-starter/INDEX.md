@@ -2,9 +2,12 @@
 
 # Atminties indeksas
 
-5 įrašų · 3 sričių · 0 pasenusių · 1 laukia patvirtinimo
+5 įrašų · 3 sričių · 1 laukia patvirtinimo
 
-Žymos: `✓` patvirtinta · `~` juodraštis · `?` spėjimas · **!** galiojimas baigėsi
+Žymos: `✓` patvirtinta · `~` juodraštis · `?` spėjimas
+
+Kas pasenę — rodo `npm run tikrinti`, ne šis failas: indeksas turi priklausyti
+tik nuo failų turinio, kitaip `--check` CI'uje imtų kristi pats savaime.
 
 ## Laukia patvirtinimo (`inbox/`)
 

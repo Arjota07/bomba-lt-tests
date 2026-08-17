@@ -295,7 +295,7 @@ yra veikiantis karkasas, paruoštas perkelti į naują repo vienu `cp -r`.
 |---|---|
 | Katalogų struktūra pagal sritis | `atmintis-starter/sritys/` + [`GAIRES.md`](../atmintis-starter/sritys/GAIRES.md) |
 | Linteris (secrets, pasenę, ilgis, dublikatai, nuorodos) | [`scripts/lint.mjs`](../atmintis-starter/scripts/lint.mjs) |
-| Linterio testai — 19 atvejų | [`scripts/test.mjs`](../atmintis-starter/scripts/test.mjs) |
+| Linterio testai — 32 atvejai, įskaitant apėjimų | [`scripts/test.mjs`](../atmintis-starter/scripts/test.mjs) |
 | `INDEX.md` generatorius | [`scripts/index.mjs`](../atmintis-starter/scripts/index.mjs) |
 | Pre-commit hook + GitHub Action | `hooks/pre-commit`, `github/atmintis.yml` |
 | Šablonai: faktas, ADR, plonas `CLAUDE.md` | `atmintis-starter/templates/` |

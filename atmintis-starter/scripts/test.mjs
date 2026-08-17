@@ -3,8 +3,12 @@
  * Linterio testai.
  *
  * Linteris yra vienintelis dalykas, skiriantis atmintį git'e nuo atminties,
- * kurią vėl teks išmesti iš git'o. Jei jis tyliai sugenda, apie tai
- * sužinotum tik po kito nutekėjimo — todėl jis tikrinamas.
+ * kurią vėl teks išmesti iš git'o. Jei jis tyliai sugenda, apie tai sužinotum
+ * tik po kito nutekėjimo — todėl jis tikrinamas.
+ *
+ * KIEKVIENAS atvejis tikrina ir radinių kodus, IR proceso exit kodą. Be exit
+ * kodo tikrinimo testai praeitų net tada, kai linteris nustotų ką nors
+ * blokuoti — būtent tokia klaida čia ir buvo.
  *
  *   node scripts/test.mjs
  */
@@ -33,126 +37,180 @@ const FM = (papildomai = {}) => {
     .join('\n')}\n---\n`;
 };
 
-/** [pavadinimas, failai, laukiami kodai, nelaukiami kodai] */
+/** Švarus turinio failas — kad struktūros patikra visada turėtų ką tikrinti. */
+const SVARUS = { 'sritys/ok.md': `${FM()}# Tvarkingas\nEilinis sakinys apie serverio konfigūraciją.\n` };
+
+const A = (turinys, papildomi = {}) => ({ ...SVARUS, 'sritys/a.md': turinys, ...papildomi });
+
+/**
+ * [pavadinimas, failai, { laukiami, nelaukiami, blokuoja }]
+ * blokuoja: true = linteris privalo grąžinti exit 1.
+ */
 const ATVEJAI = [
+  // ---- kredencialų aptikimas -------------------------------------------
   [
     'sshpass su slaptažodžiu',
-    { 'sritys/a.md': `${FM()}# A\nSSH: sshpass -p 'Slaptas123' ssh vartotojas@hostas\n` },
-    ['SECRET/sshpass'],
-    [],
+    A(`${FM()}# A\nSSH: sshpass -p 'Slaptas123' ssh vartotojas@hostas\n`),
+    { laukiami: ['SECRET/sshpass'], blokuoja: true },
   ],
   [
     'slaptažodis su reikšme',
-    { 'sritys/a.md': `${FM()}# A\nAdmin slaptažodis: TikrasSlaptas2026\n` },
-    ['SECRET/reiksme'],
-    [],
+    A(`${FM()}# A\nAdmin slaptažodis: TikrasSlaptas2026\n`),
+    { laukiami: ['SECRET/reiksme'], blokuoja: true },
   ],
+  [
+    'APĖJIMAS: „.env" toje pačioje eilutėje nebenutildo',
+    A(`${FM()}# A\nAdmin slaptažodis: TikrasSlaptas2026! (kiti — .env faile)\n`),
+    { laukiami: ['SECRET/reiksme'], blokuoja: true },
+  ],
+  [
+    'APĖJIMAS: „1Password" toje pačioje eilutėje nebenutildo',
+    A(`${FM()}# A\nDB slaptažodis: Xk7mQz9Wufd (o SSH — 1Password įraše)\n`),
+    { laukiami: ['SECRET/reiksme'], blokuoja: true },
+  ],
+  [
+    'APĖJIMAS: kredencialas markdown lentelėje',
+    A(`${FM()}# A\n\n| Sistema | Vartotojas | Slaptažodis |\n|---|---|---|\n| DirectAdmin | naudotojas | Xk7@mQz9Wufd |\n`),
+    { laukiami: ['SECRET/lentele'], blokuoja: true },
+  ],
+  [
+    'APĖJIMAS: kredencialas ne atminties kataloge (README.md)',
+    { ...SVARUS, 'README.md': '# Repo\nSMTP password: Tikras2026Slaptas\n' },
+    { laukiami: ['SECRET/reiksme'], blokuoja: true },
+  ],
+  [
+    'APĖJIMAS: kredencialas .txt faile',
+    { ...SVARUS, 'prieigos.txt': 'admin / Tikras2026Slaptas\n' },
+    { laukiami: ['SECRET/be-raktazodzio'], blokuoja: true },
+  ],
+  [
+    'kredencialas be raktažodžio dabar BLOKUOJA, ne įspėja',
+    A(`${FM()}# A\n**Admin:** \`https://x.lt/admin/login\` / \`naudotojas\` / \`Admin2026!\`\n`),
+    { laukiami: ['SECRET/be-raktazodzio'], blokuoja: true },
+  ],
+  [
+    'GitHub token, Bearer, Basic auth, URL kredencialai',
+    A(
+      `${FM()}# A\n` +
+        'Token: ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ012345\n' +
+        'Auth: Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\n' +
+        'Basic: Authorization: Basic YWRtaW46c3VwZXJzZWNyZXQxMjM=\n' +
+        'DSN: mysql://root:Slaptas123@localhost/db\n',
+    ),
+    { laukiami: ['SECRET/gh-token', 'SECRET/bearer', 'SECRET/basic-auth', 'SECRET/url-creds'], blokuoja: true },
+  ],
+
+  // ---- ko NETURI blokuoti ----------------------------------------------
   [
     'nuoroda į 1Password praeina',
-    { 'sritys/a.md': `${FM()}# A\nDB slaptažodis — 1Password įraše \`milvid-db\`.\n` },
-    [],
-    ['SECRET/reiksme', 'GALIMAS-SECRET'],
+    A(`${FM()}# A\nDB slaptažodis: 1Password\nSSH prisijungimas — 1Password įraše \`serveris\`.\n`),
+    { nelaukiami: ['SECRET/reiksme', 'SECRET/be-raktazodzio', 'SECRET/lentele'], blokuoja: false },
   ],
   [
-    'aplinkos kintamasis praeina',
-    { 'sritys/a.md': `${FM()}# A\nSMTP password: \${SMTP_PASSWORD}\n` },
-    [],
-    ['SECRET/reiksme'],
+    'aplinkos kintamasis ir vietaženklis praeina',
+    A(`${FM()}# A\nSMTP password: \${SMTP_PASSWORD}\nPvz.: sshpass -p "$SSH_PASSWORD" ssh hostas\nAdmin slaptažodis: <slaptazodis>\n`),
+    { nelaukiami: ['SECRET/reiksme', 'SECRET/sshpass'], blokuoja: false },
   ],
   [
-    'GitHub token, Basic auth, URL kredencialai',
+    'proza apie slaptažodžių taisyklę nėra kredencialas',
+    A(`${FM()}# A\nLinteris blokuoja commitą radęs \`slaptažodis: reikšmė\` ar \`password: value\`.\n`),
+    { nelaukiami: ['SECRET/reiksme'], blokuoja: false },
+  ],
+  [
+    'ERP dokumento numeris ir versija prisijungimų eilutėje praeina',
+    A(`${FM()}# A\nAdmin skydelis veikia PrestaShop1789 versijoje, dokumentas MLV-2026-P00123.\n`),
+    { nelaukiami: ['SECRET/be-raktazodzio'], blokuoja: false },
+  ],
+  [
+    'git sha commito kontekste praeina',
+    A(`${FM()}# A\nAdmin modulio commit sha: a1b2c3d4e5f6789.\n`),
+    { nelaukiami: ['SECRET/be-raktazodzio'], blokuoja: false },
+  ],
+  [
+    'nutildymo komentaras veikia',
+    A(`${FM()}# A\n**Admin:** \`naudotojas\` / \`Pavyzdys2026X\` <!-- lint:ne-secret -->\n`),
+    { nelaukiami: ['SECRET/be-raktazodzio'], blokuoja: false },
+  ],
+  [
+    'markdown nuoroda kodo bloke nėra tikra nuoroda',
+    A(`${FM()}# A\n\n\`\`\`md\n[pavyzdys](../nera/failo.md)\n\`\`\`\n`),
+    { nelaukiami: ['NUORODA'], blokuoja: false },
+  ],
+  [
+    'vienodas saltinis dviejuose failuose nėra dublikatas',
     {
-      'sritys/a.md':
-        `${FM()}# A\n` +
-        'Token: ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ012345\n' +
-        'Auth: Authorization: Basic YWRtaW46c3VwZXJzZWNyZXQxMjM=\n' +
-        'DSN: mysql://root:Slaptas123@localhost/db\n',
+      ...SVARUS,
+      'sritys/a.md': `${FM({ saltinis: 'Bertus 2026 dilerių kainynas, gautas elektroniniu paštu 2026-08-12' })}# A\nPirmas turinys.\n`,
+      'sritys/b.md': `${FM({ saltinis: 'Bertus 2026 dilerių kainynas, gautas elektroniniu paštu 2026-08-12' })}# B\nAntras turinys.\n`,
     },
-    ['SECRET/gh-token', 'SECRET/basic-auth', 'SECRET/url-creds'],
-    [],
+    { nelaukiami: ['DUBLIKATAS'], blokuoja: false },
   ],
   [
-    'kredencialas be raktažodžio — įspėjimas',
-    { 'sritys/a.md': `${FM()}# A\n**Admin:** \`https://x.lt/admin/login\` / \`vartotojas\` / \`Admin2026!\`\n` },
-    ['GALIMAS-SECRET'],
-    [],
+    'ilga lentelė neviršija ILGIS ribos',
+    A(`${FM()}# A\n\n| Kodas | Reikšmė |\n|---|---|\n${Array.from({ length: 250 }, (_, i) => `| K${i} | reikšmė ${i} |`).join('\n')}\n`),
+    { nelaukiami: ['ILGIS'], blokuoja: false },
   ],
-  [
-    'technologijos versija ir git sha nėra slaptažodžiai',
-    {
-      'sritys/a.md': `${FM()}# A\nAdmin skydelis veikia PrestaShop1789 versijoje.\nDB commit: a1b2c3d4e5f6789.\n`,
-    },
-    [],
-    ['GALIMAS-SECRET'],
-  ],
-  ['be frontmatter', { 'sritys/a.md': '# A\nTekstas.\n' }, ['FM/nera'], []],
-  [
-    'trūksta lauko',
-    { 'sritys/a.md': `${FM({ saltinis: null })}# A\nTekstas.\n` },
-    ['FM/laukas'],
-    [],
-  ],
-  [
-    'blogas tikrumas',
-    { 'sritys/a.md': `${FM({ tikrumas: 'gal_but' })}# A\nTekstas.\n` },
-    ['FM/tikrumas'],
-    [],
-  ],
+
+  // ---- struktūra --------------------------------------------------------
+  ['be frontmatter', A('# A\nTekstas.\n'), { laukiami: ['FM/nera'], blokuoja: true }],
+  ['trūksta lauko', A(`${FM({ saltinis: null })}# A\nTekstas.\n`), { laukiami: ['FM/laukas'], blokuoja: true }],
+  ['blogas tikrumas', A(`${FM({ tikrumas: 'gal_but' })}# A\nTekstas.\n`), { laukiami: ['FM/tikrumas'], blokuoja: true }],
   [
     'galioja-iki anksčiau už atnaujinta',
-    { 'sritys/a.md': `${FM({ 'galioja-iki': '2026-07-01' })}# A\nTekstas.\n` },
-    ['FM/data'],
-    [],
+    A(`${FM({ 'galioja-iki': '2026-07-01' })}# A\nTekstas.\n`),
+    { laukiami: ['FM/data'], blokuoja: true },
   ],
   [
-    'pasenęs įrašas — įspėjimas',
-    { 'sritys/a.md': `${FM({ 'galioja-iki': '2026-02-01' })}# A\nTekstas.\n` },
-    ['PASENE'],
-    [],
+    'pasenęs įrašas — įspėjimas, NEblokuoja',
+    A(`${FM({ atnaujinta: '2026-01-01', 'galioja-iki': '2026-02-01' })}# A\nTekstas.\n`),
+    { laukiami: ['PASENE'], nelaukiami: ['FM/data'], blokuoja: false },
   ],
   [
     'inbox privalo būti juodraštis',
-    { 'inbox/a.md': `${FM({ sritis: 'discogs' })}# A\nTekstas.\n` },
-    ['INBOX/tikrumas'],
-    [],
+    { ...SVARUS, 'inbox/a.md': `${FM({ sritis: 'discogs' })}# A\nTekstas.\n` },
+    { laukiami: ['INBOX/tikrumas'], blokuoja: true },
   ],
   [
     'inbox su juodraščiu praeina',
-    { 'inbox/a.md': `${FM({ sritis: 'discogs', tikrumas: 'juodrastis', saltinis: null })}# A\nTekstas.\n` },
-    [],
-    ['INBOX/tikrumas', 'FM/laukas'],
+    { ...SVARUS, 'inbox/a.md': `${FM({ sritis: 'discogs', tikrumas: 'juodrastis', saltinis: null })}# A\nTekstas.\n` },
+    { nelaukiami: ['INBOX/tikrumas', 'FM/laukas'], blokuoja: false },
   ],
   [
     'archyve galioja-iki neprivalomas',
-    { 'archyvas/a.md': `${FM({ 'galioja-iki': null, saltinis: null })}# A\nTekstas.\n` },
-    [],
-    ['FM/laukas', 'PASENE'],
+    { ...SVARUS, 'archyvas/a.md': `${FM({ 'galioja-iki': null, saltinis: null })}# A\nTekstas.\n` },
+    { nelaukiami: ['FM/laukas', 'PASENE'], blokuoja: false },
   ],
   [
     'per ilgas failas',
-    { 'sritys/a.md': `${FM()}# A\n${Array.from({ length: 210 }, (_, i) => `Eilute ${i}`).join('\n')}\n` },
-    ['ILGIS'],
-    [],
+    A(`${FM()}# A\n${Array.from({ length: 210 }, (_, i) => `Eilute ${i}`).join('\n')}\n`),
+    { laukiami: ['ILGIS'], blokuoja: true },
   ],
-  ['lūžusi nuoroda', { 'sritys/a.md': `${FM()}# A\n[nera](../nera/failo.md)\n` }, ['NUORODA'], []],
+  ['lūžusi nuoroda', A(`${FM()}# A\n[nera](../nera/failo.md)\n`), { laukiami: ['NUORODA'], blokuoja: true }],
   [
     'dublikatas dviejuose failuose',
     {
+      ...SVARUS,
       'sritys/a.md': `${FM()}# A\nŠitas pakankamai ilgas teiginys turi kartotis dviejuose failuose, kad būtų pagautas.\n`,
       'sritys/b.md': `${FM()}# B\nŠitas pakankamai ilgas teiginys turi kartotis dviejuose failuose, kad būtų pagautas.\n`,
     },
-    ['DUBLIKATAS'],
-    [],
+    { laukiami: ['DUBLIKATAS'], blokuoja: false },
+  ],
+  [
+    'CRLF failas tikrinamas normaliai',
+    A(`${FM()}# A\nAdmin slaptažodis: TikrasSlaptas2026\n`.replace(/\n/g, '\r\n')),
+    { laukiami: ['SECRET/reiksme'], blokuoja: true },
   ],
   [
     'tvarkingas failas neduoda nieko',
-    { 'sritys/a.md': `${FM()}# A\nServerio slaptažodis — 1Password įraše \`milvid-hostingas\`.\n` },
-    [],
-    ['SECRET/reiksme', 'FM/nera', 'FM/laukas', 'PASENE', 'DUBLIKATAS', 'GALIMAS-SECRET'],
+    A(`${FM()}# A\nServerio slaptažodis — 1Password įraše \`serveris\`.\n`),
+    {
+      nelaukiami: ['SECRET/reiksme', 'SECRET/be-raktazodzio', 'FM/nera', 'FM/laukas', 'PASENE', 'DUBLIKATAS'],
+      blokuoja: false,
+    },
   ],
 ];
 
-function paleisti(failai) {
+function paleisti(failai, papildomiArgumentai = []) {
   const saknis = mkdtempSync(join(tmpdir(), 'atmintis-'));
   try {
     for (const [kelias, turinys] of Object.entries(failai)) {
@@ -160,14 +218,26 @@ function paleisti(failai) {
       mkdirSync(dirname(pilnas), { recursive: true });
       writeFileSync(pilnas, turinys, 'utf8');
     }
-    let isvestis;
+    let isvestis = '';
+    let exitCode = 0;
     try {
-      isvestis = execFileSync('node', [LINT, saknis, '--json'], { encoding: 'utf8' });
+      isvestis = execFileSync('node', [LINT, ...papildomiArgumentai, saknis, '--json'], { encoding: 'utf8' });
     } catch (klaida) {
       isvestis = klaida.stdout || '';
+      exitCode = typeof klaida.status === 'number' ? klaida.status : 1;
     }
-    const r = JSON.parse(isvestis);
-    return [...r.klaidos, ...r.ispejimai].map((x) => x.kodas);
+    let r;
+    try {
+      r = JSON.parse(isvestis);
+    } catch {
+      return { kodai: [], exitCode, jsonKlaida: true, isvestis };
+    }
+    return {
+      kodai: [...r.klaidos, ...r.ispejimai].map((x) => x.kodas),
+      klaiduKodai: r.klaidos.map((x) => x.kodas),
+      exitCode,
+      jsonKlaida: false,
+    };
   } finally {
     rmSync(saknis, { recursive: true, force: true });
   }
@@ -176,25 +246,48 @@ function paleisti(failai) {
 let praejo = 0;
 const nepraejo = [];
 
-for (const [pavadinimas, failai, laukiami, nelaukiami] of ATVEJAI) {
-  const kodai = paleisti(failai);
-  const truksta = laukiami.filter((k) => !kodai.includes(k));
-  const pertekliniai = nelaukiami.filter((k) => kodai.includes(k));
+for (const [pavadinimas, failai, { laukiami = [], nelaukiami = [], blokuoja }] of ATVEJAI) {
+  const r = paleisti(failai);
+  const bedos = [];
 
-  if (truksta.length === 0 && pertekliniai.length === 0) {
+  if (r.jsonKlaida) bedos.push(`--json grąžino nevalidų JSON: ${String(r.isvestis).slice(0, 80)}`);
+
+  const truksta = laukiami.filter((k) => !r.kodai.includes(k));
+  if (truksta.length) bedos.push(`nerado: ${truksta.join(', ')}`);
+
+  const pertekliniai = nelaukiami.filter((k) => r.kodai.includes(k));
+  if (pertekliniai.length) bedos.push(`neteisingai rado: ${pertekliniai.join(', ')}`);
+
+  const laukiamasExit = blokuoja ? 1 : 0;
+  if (r.exitCode !== laukiamasExit) bedos.push(`exit ${r.exitCode}, laukta ${laukiamasExit}`);
+
+  // Blokuoti privalantis radinys turi būti KLAIDA, ne įspėjimas.
+  if (blokuoja) {
+    const neKlaidos = laukiami.filter((k) => r.kodai.includes(k) && !r.klaiduKodai.includes(k));
+    if (neKlaidos.length) bedos.push(`tik įspėjimas, turi blokuoti: ${neKlaidos.join(', ')}`);
+  }
+
+  if (bedos.length === 0) {
     praejo += 1;
-    console.log(`  ok   ${pavadinimas}`);
+    console.log(`  ok    ${pavadinimas}`);
   } else {
-    const detales = [
-      truksta.length ? `nerado: ${truksta.join(', ')}` : '',
-      pertekliniai.length ? `neteisingai rado: ${pertekliniai.join(', ')}` : '',
-    ]
-      .filter(Boolean)
-      .join('; ');
     nepraejo.push(pavadinimas);
-    console.log(`  KLAIDA ${pavadinimas} — ${detales} (grąžino: ${kodai.join(', ') || 'nieko'})`);
+    console.log(`  KLAIDA ${pavadinimas} — ${bedos.join('; ')} (grąžino: ${r.kodai.join(', ') || 'nieko'})`);
   }
 }
 
-console.log(`\n${praejo}/${ATVEJAI.length} testų praėjo.`);
-process.exit(nepraejo.length > 0 ? 1 : 0);
+// Atskirai: vėliavėlė PRIEŠ kelią neturi tyliai ignoruoti kelio.
+{
+  const r = paleisti(A(`${FM()}# A\nAdmin slaptažodis: TikrasSlaptas2026\n`), ['--strict']);
+  if (r.kodai.includes('SECRET/reiksme') && r.exitCode === 1) {
+    praejo += 1;
+    console.log('  ok    vėliavėlė prieš kelią nenulemia tikrinamo katalogo');
+  } else {
+    nepraejo.push('vėliavėlė prieš kelią');
+    console.log(`  KLAIDA vėliavėlė prieš kelią — grąžino: ${r.kodai.join(', ') || 'nieko'}, exit ${r.exitCode}`);
+  }
+}
+
+const viso = ATVEJAI.length + 1;
+console.log(`\n${praejo}/${viso} testų praėjo.`);
+if (nepraejo.length) process.exitCode = 1;
