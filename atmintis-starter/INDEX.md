@@ -2,7 +2,7 @@
 
 # Atminties indeksas
 
-4 įrašų · 3 sričių · 0 pasenusių · 1 laukia patvirtinimo
+5 įrašų · 3 sričių · 0 pasenusių · 1 laukia patvirtinimo
 
 Žymos: `✓` patvirtinta · `~` juodraštis · `?` spėjimas · **!** galiojimas baigėsi
 
@@ -29,5 +29,6 @@
 | | Įrašas | Atnaujinta | Galioja iki |
 |---|---|---|---|
 | ✓ | [Atmintis gyvena atskirame repo, ne projektų viduje](sprendimai/2026-08-17-atmintis-atskirame-repo.md) | 2026-08-17 | 2027-08-17 |
+| ✓ | [Skill'ai laiko procedūrą, atmintis — faktus](sprendimai/2026-08-17-faktai-atmintyje-procedura-skilluose.md) | 2026-08-17 | 2027-02-17 |
 | ✓ | [Kas gyvena kurioje srityje](sritys/GAIRES.md) | 2026-08-17 | 2027-08-17 |
 
