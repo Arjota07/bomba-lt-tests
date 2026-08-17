@@ -1,0 +1,65 @@
+# Atminties patikra.
+#
+# DIEGIMAS: nukopijuok į petriuko-atmintis repo kaip
+#   .github/workflows/atmintis.yml
+#
+# Šiame (bomba-lt-tests) repo failas laikomas po `github/`, kad NEPASILEISTŲ —
+# GitHub Actions vykdo tik tai, kas guli `.github/workflows/`.
+
+name: Atmintis
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  schedule:
+    # Šeštadieniais 06:00 UTC — savaitinė „kas pasenę" ataskaita.
+    - cron: '0 6 * * 6'
+  workflow_dispatch:
+
+jobs:
+  linteris:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Pirma tikrinamas pats linteris: jei jis sugedęs, jo „viskas gerai"
+      # nieko nereiškia.
+      - name: Linterio testai
+        run: node scripts/test.mjs
+
+      # Klaidos blokuoja visada: trūkstamas frontmatter, per ilgi failai,
+      # lūžusios nuorodos ir — svarbiausia — kredencialai.
+      - name: Linteris
+        run: node scripts/lint.mjs
+
+      # INDEX.md yra generuojamas, todėl PR jį privalo turėti šviežią.
+      - name: INDEX.md šviežumas
+        if: github.event_name != 'schedule'
+        run: node scripts/index.mjs --check
+
+  # Savaitinė peržiūros ataskaita. Neblokuoja nieko — tik surašo, kas pasenę
+  # ir kas guli inbox/ nepatvirtinta.
+  savaites-ataskaita:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Atskiras skriptas, o ne `node -e '…'`: dvidešimt eilučių JS shell'o
+      # vienguolėse kavutėse sulūžta nuo vieno apostrofo kode.
+      # Kredencialas atmintyje nudažo šį žingsnį raudonai (exit 1), o ne tik
+      # atsiranda tekste — ankstesnė versija skaitė vien įspėjimus ir rašė
+      # „Atmintis švari" net gulint atviro teksto slaptažodžiui.
+      - name: Savaitės ataskaita
+        run: |
+          set -o pipefail   # be jo žingsnio baigtį lemtų `tee`, o ne skriptas
+          node scripts/ataskaita.mjs | tee -a "$GITHUB_STEP_SUMMARY"
