@@ -170,6 +170,15 @@ This project is consumed by the `e2e-orchestrator` skill:
 → Generates report at /tmp/e2e-report-bomba-*.md
 ```
 
+## `tools/` — nesusiję su Playwright testais
+
+Kaip ir [`.claude/`](.claude/README.md), šis katalogas su E2E suite nesusijęs —
+jis čia todėl, kad šiame repo startuoja iOS/web Claude sesijos.
+
+| Įrankis | Ką daro |
+|---|---|
+| [`tools/pc-check/`](tools/pc-check/README.md) | Parduotuvės kompiuterių sveikatos patikra (Windows / macOS / Linux), tik skaitymas |
+
 ## Žinomi limitations
 
 - **Cookie consent** — auto-accept'inamas fixtų atveju. Jei dizainas keičiasi — `storage.ts:13` selectoras gali sulūžti.
