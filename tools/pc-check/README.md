@@ -23,6 +23,39 @@ priimi tu.
 | macOS | `pc-check.sh` | `bash pc-check.sh` |
 | Linux | `pc-check.sh` | `bash pc-check.sh` |
 
+## Paleidimas be failų kopijavimo
+
+Repo viešas, tad skriptą galima paleisti tiesiai iš GitHub — nieko nereikia
+nešiotis USB'u į kiekvieną mašiną.
+
+**Windows** (viena eilutė PowerShell'e):
+
+```powershell
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $f = "$env:TEMP\pc-check.ps1"; Invoke-RestMethod 'https://raw.githubusercontent.com/Arjota07/bomba-lt-tests/master/tools/pc-check/pc-check.ps1' -OutFile $f; powershell -ExecutionPolicy Bypass -File $f
+```
+
+`SecurityProtocol` eilutė būtina: PS 5.1 dalyje mašinų dar bando TLS 1.0, o
+GitHub tokį atmeta — be jos gautum tik „The request was aborted: Could not
+create SSL/TLS secure channel". Argumentus dėk failo gale:
+`... -File $f -Updates`.
+
+**macOS / Linux:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Arjota07/bomba-lt-tests/master/tools/pc-check/pc-check.sh | bash
+```
+
+Argumentai per `bash -s --`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Arjota07/bomba-lt-tests/master/tools/pc-check/pc-check.sh | bash -s -- --updates
+```
+
+Vienintelis apribojimas taip paleidus — `--help` neveikia (skriptas skaito savo
+patį per `$0`, o per konvejerį jo nėra). Pati patikra veikia visa.
+
+## Paleidimas iš vietinio failo
+
 Greita patikra užima ~15–25 s. OS atnaujinimų paieška lėta (tinklas), todėl ji
 atskirai:
 
