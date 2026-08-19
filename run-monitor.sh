@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # bomba.lt E2E Production Monitor — local Mac launchd cron
 #
-# Paleidžia smoke + security + a11y testus prieš https://bomba.lt
-# Rezultatai saugomi Dropbox/BOMBA.LT/e2e-monitor-results/YYYYMMDD_HHMMSS/
+# Paleidžia visas 7 suites (smoke, security, a11y, performance, checkout,
+# mobile, visual) prieš kanoninį prod https://www.imuzika.lt (BASE_URL perrašomas).
+# Rezultatai saugomi Dropbox/…/BOMBA.LT/e2e-monitor-results/YYYYMMDD_HHMMSS/
 # Pranešimas (macOS notification) jei aptinka drift'ą.
 #
 # Manual:    bash ~/Projektai/bomba.lt-tests/run-monitor.sh
@@ -119,11 +120,6 @@ for ENTRY in "${SUITES[@]}"; do
   if [ "$RC" -ne 0 ]; then OVERALL=1; fi
 done
 
-# HTML report (paskutinis suite'o run'as palieka — geriau nei nieko)
-if [ -d "playwright-report" ]; then
-  cp -R playwright-report "$OUT_DIR/html-report" 2>/dev/null || true
-fi
-
 # Summary
 echo
 echo "=========================================="
@@ -205,7 +201,7 @@ if [ "$OVERALL" -ne 0 ]; then
     done
     echo ""
     echo "Full logs: $OUT_DIR"
-    echo "HTML report: $OUT_DIR/html-report/index.html"
+    echo "HTML reports: $OUT_DIR/html-report/<suite>/index.html (kiekvienai suite'ei atskiras)"
   } 2>&1)
 
   # 🔴 2026-07-31: rankiniam paleidimui — `E2E_NO_EMAIL=1 bash run-monitor.sh`.
