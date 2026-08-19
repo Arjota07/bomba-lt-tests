@@ -80,8 +80,8 @@ tests/e2e/
     └── visual/                     # Visual regression — cross-device + cross-OS
         ├── homepage-baseline.spec.ts
         └── homepage-baseline.spec.ts-snapshots/
-            ├── homepage-atf-desktop-chromium-darwin.png    # Mac local
-            ├── homepage-atf-desktop-chromium-linux.png     # CI runner
+            ├── homepage-atf-desktop-chromium-darwin.webp   # Mac local
+            ├── homepage-atf-desktop-chromium-linux.webp    # CI runner
             └── ...
 ```
 
@@ -98,7 +98,7 @@ GitHub Actions workflow: [`.github/workflows/e2e-bomba.yml`](.github/workflows/e
 **Tech stack:**
 - `actions/checkout@v6`, `actions/setup-node@v6`, `actions/cache@v5`, `actions/upload-artifact@v7` (Node 24 ready)
 - Node 20 runtime
-- Playwright 1.60+ (palaiko `--update-snapshots=missing` granular flag)
+- Playwright 1.62+ (WebP snapshot'ai, `retryStrategy: 'isolated'`, `--update-snapshots=missing` granular flag). Reikalauja Node ≥20.
 - `concurrency: cancel-in-progress` — newer push cancels older
 - `timeout-minutes: 10` per job
 
@@ -113,13 +113,18 @@ gh workflow run "imuzika.lt E2E (Production Monitor)" --ref master -f qa_suite=a
 
 ## Visual regression baselines — cross-OS
 
-Snapshots'ai turi OS sufiksą faile vardo (`*-darwin.png`, `*-linux.png`). Playwright AUTO pasirenka pagal `process.platform`:
+**Formatas nuo 2026-08-15: WebP (lossless), ne PNG.** Playwright 1.62 formatą parenka pagal
+plėtinį `toHaveScreenshot('homepage-atf.webp')` argumente — globalaus config option'o nėra,
+tad naują visual testą rašant reikia PRISIMINTI `.webp`. Kokybė nenukenčia (quality 100 =
+lossless), failai ~2-3× mažesni, o baseline'ai commit'inami į repo kiekvieno refresh'o metu.
+
+Snapshots'ai turi OS sufiksą faile vardo (`*-darwin.webp`, `*-linux.webp`). Playwright AUTO pasirenka pagal `process.platform`:
 
 | Platform | Naudojama baseline'ui | Kada |
 |---|---|---|
-| `darwin` (Mac) | `*-darwin.png` | Lokalus dev su `npm test` |
-| `linux` | `*-linux.png` | GitHub Actions CI runner |
-| `win32` | `*-win32.png` | (nenaudojama) |
+| `darwin` (Mac) | `*-darwin.webp` | Lokalus dev su `npm test` |
+| `linux` | `*-linux.webp` | GitHub Actions CI runner |
+| `win32` | `*-win32.webp` | (nenaudojama) |
 
 **Iki kol abu egzistuoja repo'e — visual regression veikia cross-OS.** Vienos OS baseline neveikia kitoje OS dėl skirtingo font rendering, anti-aliasing, GPU/CPU rasterization.
 
@@ -129,7 +134,7 @@ Snapshots'ai turi OS sufiksą faile vardo (`*-darwin.png`, `*-linux.png`). Playw
 ```bash
 npm run test:update-snapshots                  # update VISŲ snapshots
 npx playwright test specs/visual --update-snapshots=missing  # tik missing
-git add tests/e2e/specs/visual/**/*-darwin.png
+git add tests/e2e/specs/visual/**/*-darwin.webp
 git commit -m "test(visual): update darwin baselines"
 ```
 
@@ -144,17 +149,22 @@ git commit -m "test(visual): update darwin baselines"
    mkdir -p /tmp/visual-snapshots-$RUN_ID
    cd /tmp/visual-snapshots-$RUN_ID
    gh run download $RUN_ID --name visual-snapshots-linux
-   cp tests/e2e/specs/visual/homepage-baseline.spec.ts-snapshots/*-linux.png \
+   cp tests/e2e/specs/visual/homepage-baseline.spec.ts-snapshots/*-linux.webp \
       ~/Projektai/bomba-lt-tests/tests/e2e/specs/visual/homepage-baseline.spec.ts-snapshots/
    cd ~/Projektai/bomba-lt-tests
-   git add tests/e2e/specs/visual/**/*-linux.png
+   git add tests/e2e/specs/visual/**/*-linux.webp
    git commit -m "test(visual): update linux baselines"
-   git push  # jei PNG'ai dideli — pirma: git config http.postBuffer 524288000
+   git push
    ```
 3. Antrasis CI run jau lygins prieš naujus baseline'us → PASS.
 
 ### Žinomi cross-OS limitations
-- Šiuo metu **TIK desktop-chromium-linux baseline'as commit'intas** repo'e — `mobile-iphone-linux` ir `tablet-ipad-linux` reikia regeneruoti tuo pačiu metodu kai bus reikalingi.
+- 🔴 **2026-08-15: repo'e baseline'ų NĖRA.** Playwright 1.62 atsinešė Chromium 151 / WebKit 26.5,
+  tad senieji PNG baseline'ai (iš Chromium 14x) vis tiek nebegaliojo — jie ištrinti kartu su
+  perėjimu į WebP. Pirmas `qa_suite=visual` dispatch run'as bus RAUDONAS ("snapshot doesn't exist")
+  ir sugeneruos naujus — tai numatyta, žr. procedūrą aukščiau. Kol baseline'ų nėra, visual
+  suite'as neapsaugo nuo regresijų (jis paleidžiamas tik rankiniu dispatch'u, tad push/PR CI lieka žalias).
+- Po baseline'ų atkūrimo: **TIK desktop-chromium-linux** reikalingas nuolat — `mobile-iphone-linux` ir `tablet-ipad-linux` regeneruojami tuo pačiu metodu kai bus reikalingi.
 - Workflow visual job apriboja `--project=desktop-chromium` kol kiti baseline'ai nebus pridėti.
 
 ## /daryk-e2e integration

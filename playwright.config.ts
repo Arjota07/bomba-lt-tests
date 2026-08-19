@@ -29,6 +29,12 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 1,
+  // 🔴 2026-08-15 (Playwright 1.62): retry'ai nebe „iš karto", o pačioje pabaigoje
+  // vienu workeriu. Prod monitoringui tai svarbu — anksčiau kritęs testas
+  // persileisdavo lygiagrečiai su likusia suite'a ir dar labiau spausdavo
+  // imuzika.lt (2026-07-31 429 rate-limit istorija). Dabar retry vyksta, kai
+  // pagrindinis srautas jau nurimęs ⇒ flake atskiriamas nuo realaus DRIFT'o.
+  retryStrategy: 'isolated',
   // 🔴 2026-07-31: buvo `undefined` = ~pusė CPU branduolių (8 CPU → 4 workeriai).
   // Prieš PRODUCTION tai duodavo HTTP 429 checkout suite'e (ir „last status: 0"
   // nutrauktus requestus), t. y. monitorius pats gamindavo melagingą DRIFT'ą.
