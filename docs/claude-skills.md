@@ -1,0 +1,83 @@
+# Claude Code skill'ai šiam projektui
+
+Projekto lygio skill'ai (`.claude/skills/`), parinkti iš skills.sh topo pagal iMuzika
+testų/monitoringo repo poreikius. Diegta per `npx skills add ... --copy` (failai
+commitinti, ne symlink'ai), versijos fiksuotos `skills-lock.json`.
+
+## Įdiegta (6 + 2 priklausomybės)
+
+| Skill | Šaltinis | Kam čia reikalingas |
+|---|---|---|
+| `agent-browser` | vercel-labs/agent-browser | Interaktyvus naršyklės valdymas: gyvų puslapių tikrinimas, testų failure'ų atkartojimas, exploratory QA šalia Playwright |
+| `tdd` | mattpocock/skills | Red→green disciplina rašant naujus spec'us — šio repo pagrindinė veikla |
+| `triage` | mattpocock/skills | Monitoringo alertų / bug report'ų rūšiavimas pagal svarbą į agent-ready briefus |
+| `grill-me` | mattpocock/skills | Griežtas planų „iškepimas" prieš naujus testų suite'us ar integracijas |
+| `grill-with-docs` | mattpocock/skills | Tas pats + ADR/glossary dokumentai eigoje |
+| `find-skills` | vercel-labs/skills | Naujų skill'ų paieška registre (`npx skills find <query>`) |
+| `grilling` | mattpocock/skills | **Priklausomybė** — grill-me/grill-with-docs/triage variklis |
+| `domain-modeling` | mattpocock/skills | **Priklausomybė** — reikalinga grill-with-docs |
+
+## Papildymas — 2 banga (2026-08-16)
+
+| Skill | Šaltinis | Kam čia reikalingas |
+|---|---|---|
+| `webapp-testing` | anthropics/skills | Oficialus web-app testavimo toolkit'as (Playwright) |
+| `systematic-debugging` | obra/superpowers | Sisteminis raudonų testų / lūžtančių integracijų debug |
+| `verification-before-completion` | obra/superpowers | „Ar tikrai baigta?" patikra prieš uždarant darbą |
+| `brainstorming` | obra/superpowers | Variantų generavimas prieš grill'inimą |
+| `web-design-guidelines` | vercel-labs/agent-skills | UI/UX/a11y audito taisyklės frontend tikrinimui |
+| `research` | mattpocock/skills | Gilus tyrimas prieš API integracijas |
+| `to-spec` / `to-tickets` | mattpocock/skills | Grill → spec → agent-ready tiketai (maitina `triage`) |
+| `improve-codebase-architecture` | mattpocock/skills | Struktūros tvarkymas augant repo |
+| `codebase-design` | mattpocock/skills | **Priklausomybė** — improve-codebase-architecture žodynas |
+| `git-guardrails-claude-code` | mattpocock/skills | Saugikliai git operacijoms agentinėse sesijose |
+
+## Papildymas — 3 banga: ~11–100 zona (2026-08-16)
+
+| Skill | Šaltinis | Kam čia reikalingas |
+|---|---|---|
+| `wait-what` | mattpocock/skills | „Kas čia įvyko?" santrauka po ilgos agentų sesijos |
+| `remembering-conversations` | obra/episodic-memory | Praeitų pokalbių paieška (⚠️ pilnam veikimui lokalioje mašinoje reikia `episodic-memory` plugin'o su MCP) |
+| `writing-guidelines` | vercel-labs/agent-skills | Docs/prose stiliaus auditas |
+| `setup-pre-commit` | mattpocock/skills | Husky pre-commit hook'ai šiam repo |
+| `writing-for-agents` | mattpocock/skills | Savų skill'ų / CLAUDE.md rašymo taisyklės |
+| `prototype` | mattpocock/skills | Izoliuoti throwaway eksperimentai (workflow §5) |
+| `implement` | mattpocock/skills | Užbaigia grandinę to-spec → to-tickets → implement |
+| `resolving-merge-conflicts` | mattpocock/skills | Merge/rebase konfliktai tarp kelių sesijų |
+| `dispatching-parallel-agents` | obra/superpowers | Lygiagretūs subagentai nepriklausomoms užduotims |
+
+Iš 26–100 zonos sąmoningai praleista: `convex-backend`, `emil-kowalski-design`, `ui-ux-pro-max`, React/Next/TS-specifiniai (be React), `deploy-to-vercel`, `planning-with-files` (dubliuoja WORK_STATE), superpowers plan-discipline rinkinys (dengia imuzika-workflow), `using-git-worktrees` (built-in worktree), `teach`/`scaffold-exercises` (mokymui).
+
+## Diegimas visur (kitose mašinose / projektuose)
+
+Šiame repo skill'ai commitinti (`.claude/skills/`) — kiekviena sesija juos gauna automatiškai.
+Kad tas pats rinkinys veiktų **visuose** projektuose tavo mašinoje — paleisk vieną kartą:
+
+```bash
+bash scripts/install-skills-global.sh
+```
+
+## Sąmoningai praleista iš topo
+
+- **Handoff** — dubliuotų iMuzika workflow checkpoint/WORK_STATE.md sistemą.
+- **Setup Matt Pocock Skills** (bundle) — diegiam pavieniui; bundle įtrauktų nereikalingus.
+- **Vercel React Best Practices** — repo be React (Playwright TS; parduotuvės — Smarty/Liquid).
+- **Front-End Design** — testų repo nekuria UI; storefront dizainą dengia `music-taste` skill'as.
+- **Lark Doc** — Lark/Feishu stack'e nenaudojamas (Gmail/Drive).
+
+## Naudojimas
+
+- `agent-browser`: aktyvuojasi automatiškai; sandbox'e be interneto naudoti
+  `--executable-path /opt/pw-browsers/chromium` ir `file://` puslapius (išoriniai
+  saitai ten blokuojami proxy — testuoti gyvą saitą tik lokalioje mašinoje / CI).
+- `grill-me` / `grill-with-docs` / `triage`: kviesti per Skill tool arba `/grill-me`.
+- Nauji skill'ai: `npx skills find <tema>` → `npx skills add <owner/repo> -s <name> -a claude-code --copy -y`.
+- Atnaujinimas: `npx skills update` (hash'ai — `skills-lock.json`).
+
+## Patikra (atlikta 2026-08-16)
+
+1. Visų 8 SKILL.md frontmatter validus (name = katalogo vardas, description yra).
+2. Saugumo skenas — be pavojingų komandų / kredencialų prieigos.
+3. `npx skills ls` mato visus 8 kaip project skills.
+4. `agent-browser` funkcinis testas: open → snapshot (a11y refs) → click → get text ✅.
+5. `skills find` registro API pasiekiamas ✅.
