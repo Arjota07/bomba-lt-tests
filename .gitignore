@@ -16,3 +16,6 @@ allure-report/
 
 # CodeGraph local index
 .codegraph/
+
+# gstack installs globally to ~/.claude/skills/gstack — never vendor it into this repo
+.claude/skills/
