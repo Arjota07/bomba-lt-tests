@@ -85,8 +85,18 @@ test.describe('Smoke: Homepage', () => {
     await expect(searchBtn).toBeVisible({ timeout: 10_000 });
   });
 
-  test('TC-003: main navigation turi ≥5 kategorijų', async ({ guestPage }) => {
+  test('TC-003: main navigation turi ≥5 kategorijų', async ({ guestPage }, testInfo) => {
     await guestPage.goto('/', { waitUntil: 'domcontentloaded', timeout: 30_000 });
+
+    if (testInfo.project.name === 'mobile-iphone') {
+      // Mobile: #bomba-mainnav display:none iki hamburger open (žr. TC-002)
+      const hamburger = guestPage.locator('#bomba-hamburger');
+      if (await hamburger.isVisible({ timeout: 2_000 }).catch(() => false)) {
+        await hamburger.click();
+        await guestPage.locator('#bomba-mainnav.is-open').waitFor({ state: 'visible', timeout: 5_000 });
+      }
+    }
+
     // Main nav `<nav class="bomba-mainnav">` turi 9 kategorijų links
     const navLinks = guestPage.getByRole('navigation').first().getByRole('link');
     const count = await navLinks.count();

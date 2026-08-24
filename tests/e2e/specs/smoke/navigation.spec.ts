@@ -1,8 +1,17 @@
 import { test, expect } from '../../fixtures/storage';
 
 test.describe('Smoke: Navigation', () => {
-  test('TC-004: main menu links 200 OK', async ({ guestPage }) => {
+  test('TC-004: main menu links 200 OK', async ({ guestPage }, testInfo) => {
     await guestPage.goto('/', { waitUntil: 'domcontentloaded', timeout: 30_000 });
+
+    if (testInfo.project.name === 'mobile-iphone') {
+      // Mobile: #bomba-mainnav display:none iki hamburger open (žr. homepage TC-002)
+      const hamburger = guestPage.locator('#bomba-hamburger');
+      if (await hamburger.isVisible({ timeout: 2_000 }).catch(() => false)) {
+        await hamburger.click();
+        await guestPage.locator('#bomba-mainnav.is-open').waitFor({ state: 'visible', timeout: 5_000 });
+      }
+    }
 
     const navLinks = guestPage.getByRole('navigation').first().getByRole('link');
     const linkCount = await navLinks.count();
