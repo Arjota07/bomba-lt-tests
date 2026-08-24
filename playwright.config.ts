@@ -65,8 +65,11 @@ export default defineConfig({
     },
 
     // Headers (production etiquette)
+    // X-Imuzika-E2E: CF WAF skip token (secrets.E2E_CF_TOKEN) — be jo GH runner'iai
+    // gauna managed_challenge -> 403 (nuo 2026-08-10 desktop-chromium krisdavo)
     extraHTTPHeaders: {
       'X-E2E-Bot': 'bomba-lt-tests-v1',
+      ...(process.env.E2E_CF_TOKEN ? { 'X-Imuzika-E2E': process.env.E2E_CF_TOKEN } : {}),
     },
   },
 

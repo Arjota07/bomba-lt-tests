@@ -169,6 +169,7 @@ jobs:
         env:
           CI: 'true'
           BASE_URL: 'https://www.imuzika.lt'
+          E2E_CF_TOKEN: ${{ secrets.E2E_CF_TOKEN }}
         run: npx playwright test specs/${{ matrix.suite }} --project=${{ matrix.project }}
 
       - name: Upload HTML report
@@ -217,6 +218,7 @@ jobs:
         # 4) kitas run lygina ir turi būti žalias.
         env:
           CI: 'true'
+          E2E_CF_TOKEN: ${{ secrets.E2E_CF_TOKEN }}
         run: npx playwright test specs/visual --project=desktop-chromium --update-snapshots=missing
 
       - name: Upload visual snapshots + diffs
